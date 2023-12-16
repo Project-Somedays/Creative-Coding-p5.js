@@ -30,16 +30,12 @@ function draw(){
   yPos = height/2 + yPosMag*sin(aOffset/2);
   
   line(width/2, yPos,width/2, 0);
-  for(let i = 0; i < 8; i++){
+  for(let i = 0; i < 4; i++){
     let a;
     let phase = i*0.1*PI;
-    if(i < 4){
-      a = -PI/6 + i * HALF_PI/4;
-    } else {
-      a = -PI/6 + (i-4) * HALF_PI/4;
-    }
-    isFlipped = i > 3;
-    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), isFlipped);
+    a = -PI/6 + i * HALF_PI/4;
+    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), false);
+    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), true);
   }
   // drawLeg(width/2, height/2,0);
   image(houseImg, width/2 - houseImg.width/2, yPos- 2*houseImg.height/3);
