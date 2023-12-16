@@ -9,6 +9,7 @@ let n = 100;
 let maxR = 50;
 let minR = 50;
 let D, r;
+let sketchname = "Casey Reas Study 1 - Fabulous Fissure"
 
 // let colours = ["#390099","#9e0059","#ff0054","#ff5400","#ffbd00"]
 
@@ -69,6 +70,11 @@ function draw() {
 				swarm[j].applyForce(oppDir.setMag(mag));
 			}
 		}
+	}
+
+	if(frameCount === 1000){
+		console.log(sketchname);
+		save(`${sketchname}.png`);
 	}
 }
 
