@@ -31,18 +31,25 @@ function draw(){
   
   line(width/2, yPos,width/2, 0);
   for(let i = 0; i < 4; i++){
+    let a;
+  for(let i = 0; i < 4; i++){
     let a = -PI/6 + i * HALF_PI/4;
     let phase = i*0.1*PI;
-    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), false);
-    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), true);
+    if(i < 4){
+      a = -PI/6 + i * HALF_PI/4;
+    } else {
+      a = -PI/6 + (i-4) * HALF_PI/4;
     }
-  
-    // drawLeg(width/2, height/2,0);
+    isFlipped = i > 3;
+    drawLeg(width/2, yPos, a + 0.2*sin(aOffset + phase), isFlipped);
+  }
+  // drawLeg(width/2, height/2,0);
   image(houseImg, width/2 - houseImg.width/2, yPos- 2*houseImg.height/3);
   
   aOffset += legWiggleRate;
     
   }
+}
   
 
 function drawLeg(x,y,a, isFlipped){
