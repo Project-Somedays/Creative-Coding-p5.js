@@ -9,10 +9,15 @@ I wanted to get better at improving the efficiency of my code by pre-filtering a
 Let me know how I can make it better
 
 The algorithm: there's a field of particles moving around in the background
-A bolt starts with a direction and filters the background field for just those inside a cone with angular width aRange
-Particles are then sorted by proximity
-Vertices need to be within that cone of the current end point of the bolt
-
+The algorithm:
+	- Start with a field of particles moving around in the background
+	- A bolt starts with a direction and filters for particles within a cone and max distance
+  - Particles are sorted by proximity
+	-	Vertices need to be within that cone of the current end point of the bolt to be part of the bolt
+	- Bolts are drawn with a jitter at each node
+	- Draw a couple of copies with dark blue and purple before drawing the lightning bolt
+	- At the end point of the bolt, make an explosion = released a couple of sparks that are affected by gravity
+	- The sparks "cool" (lerpColour) and are removed if they drop off the screen or if they drop below zero temp
 Stretch goals:
   - Work out the bug that happens around 0/360 degrees... it doesn't like comparing 0 and 360
   - Some minor issues with debugMode and toggling on and off sparks. I've spent more than enough time on this.
