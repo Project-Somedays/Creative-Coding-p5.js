@@ -6,6 +6,8 @@ class Body{
       this.a = createVector(0,0);
       this.d = d;
       this.col = col;
+      this.lifespan = 0;
+      
     }
   
     addForce(f){
@@ -15,12 +17,22 @@ class Body{
     update(){
       this.v.add(this.a);
       this.p.add(this.v);
-      this.a.setMag(0);  
+      this.a.setMag(0);
+      this.lifespan ++;
     }
+    
   
     show(){
+      let tempd;
+      if(this.lifespan < stableOrbitLimit){
+        fill(255);
+        tempd = 1;
+      } else {
         fill(this.col);
-        circle(this.p.x, this.p.y, this.d);
+        tempd = this.d;
+      }
+      circle(this.p.x, this.p.y, tempd);
+      
     }
 
     destroy(){
