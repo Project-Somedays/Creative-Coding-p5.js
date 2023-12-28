@@ -12,6 +12,7 @@ Stretch goals:
  - Let the user position the suns
  - Let the user decide on the starting position and initial velocity of the bodies
  - Replace with satellites?
+ - Music?
 */
 
 
