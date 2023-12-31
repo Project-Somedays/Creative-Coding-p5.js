@@ -20,11 +20,12 @@ class Predictor{
             for(let sun of suns){
                 let attractionF = p5.Vector.sub(sun.p, p); // direction of acceleration
                 let p2c = p5.Vector.dist(p, sun.p); // get the distance from the body
-                if(p2c < sunSize/2 || p2c > 1.5*max(width, height)){
+                // if we've crashed into a sun or gone way too far out (probably hit escape velocity), mark as crashed
+                if(p2c < sun.s/2 || p2c > 2*max(width, height)){
                     isCrashed = true;
                     break;
                 }; // if we've crashed or if we've 
-                attractionF.setMag(G/p2c); // set the mag inversely proportional to the distance
+                attractionF.setMag(sun.mass*G/p2c); // set the mag inversely proportional to the distance
                 a.add(attractionF); // change the acceleration
             }
             if(isCrashed) break;
@@ -39,10 +40,15 @@ class Predictor{
   
     }
   
-    show(){
-      for(let trace of this.traces){
-        trace.show()
+    show(traceIx){
+      if(traceIx === colours.length){
+        for(let trace of this.traces){
+          trace.show()
+        }
+      } else{
+        this.traces[traceIx].show();
       }
+      
   
     }
   }

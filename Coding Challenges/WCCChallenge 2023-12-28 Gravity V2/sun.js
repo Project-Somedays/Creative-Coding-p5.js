@@ -1,7 +1,8 @@
 class Sun{
-    constructor(x,y,s){
+    constructor(x,y,s,mass){
       this.p = createVector(x,y);
       this.s = s;
+      this.mass = mass
     }
   
     show(){
