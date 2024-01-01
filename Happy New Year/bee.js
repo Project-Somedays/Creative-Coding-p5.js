@@ -1,52 +1,56 @@
 class Bee{
-    constructor(x,y, target, xOff, yOff, scaleOff,
-        beeScaleFactor){
-        this.p = createVector(x,y);
-        this.target = target;
-        this.prevX = x;
-        this.xOff = xOff;
-        this.yOff = yOff;
-        this.scaleOff = scaleOff;
-        this.currentPose = random([0,1]);
-        this.beeScaleFactor = beeScaleFactor;//beeScaleFactor*0.1;
-        this.startP = createVector(0,0);
-        this.startScale;
+    constructor(x,y, target, xOff, yOff, scaleOff){
+        this.p = createVector(x,y); // for keeping track of position
+        this.target = target; // sampled from the underlying text
+        this.prevX = x; // for tracking which way the bees are facing
+        this.xOff = xOff; // randomised x
+        this.yOff = yOff; // randomised y
+        this.scaleOff = scaleOff; // randomised scale
+        this.currentPose = random([0,1]); // start in a random pose
+        this.currentScaleFactor = 0;
+        this.xLLim = 0; // min range of x positions
+        this.xRLim = width; // max range of x positions
+        this.yLLim = 0; // min range of y positionss
+        this.yRLim = height; // max range of y positions
     }
 
-    cruise(){
+    update(){
         // work out which way the bees are facing
         this.prevX = this.p.x;
+        
         // set the new x,y coords
-        let x = map(noise(this.xOff + globOff),0,1,0,width);
-        let y = map(noise(this.yOff + globOff),0,1,0,height);
+        let x = map(noise(this.xOff + globOff),0,1,this.xLLim,this.xRLim);
+        let y = map(noise(this.yOff + globOff),0,1,this.yLLim,this.yRLim);
         this.p.set(x,y);
-        // bring the bee closer or further from camera
-        // this.beeScaleFactor = 1 map(noise(this.scaleOff + globOff/4),0,1,0.25, 1.25);
-        // cycle Pose on 2s
+        
+        // bring the bee closer or further from camera, but cycle this slower than general movement
+        this.currentScaleFactor = map(noise(this.scaleOff + globOff/6),0,1,currentBeeScaleLower, currentBeeScaleUpper);
+        
+        // cycle the pose on 2s
         if(frameCount % 2 === 0){
             this.currentPose = (this.currentPose + 1)%2;
         }
     }
-
-    mark(){
-        this.startP.set(this.p.x, this.p.y);
-        this.startScale = this.beeScaleFactor;
-    }
     
-    converge(){
-        this.p.x = lerp(this.startP.x, this.target.x, lerpSliderPos);
-        this.p.y = lerp(this.startP.y, this.target.y, lerpSliderPos);
-        // this.beeScaleFactor = lerp(this.startScale,sampleRate,lerpSliderPos)
+    converge_diverge(){
+        // shrink the bounding boxes on x and y. Note: executed globally for bee scale
+        this.xLLim = lerp(0, this.target.x-targetBoxSize, lerpPos);
+        this.xRLim = lerp(width, this.target.x + targetBoxSize, lerpPos);
+        this.yLLim = lerp(0, this.target.y-targetBoxSize, lerpPos);
+        this.yRLim = lerp(height, this.target.y + targetBoxSize, lerpPos);
     }
 
     show(){
         push();
-        translate(this.p.x, this.p.y);
-        if(this.p.x < this.prevX){
-        scale(-1,1);
-        }
-        // image(flightPoses[this.currentPose],0, 0, this.beeScaleFactor*globBeeScaleFactor*beeDefaultWidth, this.beeScaleFactor*globBeeScaleFactor*beeDefaultHeight);
-        image(flightPoses[this.currentPose],0,0);
+            translate(this.p.x, this.p.y);
+            if(this.p.x < this.prevX){
+                scale(-1,1);
+            }
+            // scale globally from the image file and then locally for each bee in the swarm
+            let xScale = this.currentScaleFactor*globBeeScaleFactor*beeDefaultWidth;
+            let yScale = this.currentScaleFactor*globBeeScaleFactor*beeDefaultHeight;
+            image(flightPoses[this.currentPose],0, 0, xScale, yScale);
+        
         pop();
     }
 }
