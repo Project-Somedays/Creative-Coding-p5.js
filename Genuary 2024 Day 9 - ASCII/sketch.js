@@ -1,28 +1,33 @@
+// physics
+const G = 2.25;
+
+
+// src words
 let hWord = "ASCII";
 let vWord = "A\nS\nC\nI\nI";
 let src;
 let letters = [];
 let sampleEvery;
-let bang;
-let g;
 let tSize;
-const G = 10;
-let locs = [];
-let F = 100;
-const tProgress = 0.1;
-let isExplosion = false
-const timeStep = 0.1;
-let triggerPoint;
-const margin = 0.1;
-const maxDelay = 100;
+const standardTextSizeProportion = 1/30;
+const letterChoices = ["A","S","C","I","I"];
+
+// timeline
+const maxDelay = 50;
 let startFrame = 0;
-const framesToAppear = 200;
-// bit of trial and error to get this to appear properly on the screen
+const framesToAppear = 150;
+const phase1Frames = 100;
+let endTarget;
+const phase2Frames = 100;
+
+// robotBiz
 const robotSpeed = 20;
 let robot;
-const standardTextSizeProportion = 1/30;
-let progress = 0;
+
+const laserRate = 0.02;
 const closeEnough = 0.01;
+
+// bit of trial and error to get this to appear properly on the screen
 let robotString = String.raw` 
    ____          ____
   |oooo|        |oooo|
@@ -51,33 +56,61 @@ let robotString = String.raw`
    /___n_n___\  /___n_n___\
 `
 
+let saucerText = `
+  _____
+  ,-"     "-.
+  / o       o \\
+  /   \\     /   \\
+  /     )-"-(     \\
+  /     ( 6 6 )     \\
+  /       \\ " /       \\
+  /         )=(         \\
+  /   o   .--"-"--.   o   \\
+  /    I  /  -   -  \\  I    \\
+  .--(    (_}y/\\       /\\y{_)    )--.
+  (    ".___l\/__\\_____/__\/l___,"       )
+ \\                                   /
+  "-._      o O o O o O o      _,-"
+  '--Y--.___________.--Y--'
+  |==.___________.==|
+  '==.___________.=='
+`
+
+let hMode; // decides whether we're roboting or saucering
+
+// function preload(){
+//   saucer = loadImage("spaceship.jpg");
+// }
+
 
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  background(0);
   textAlign(CENTER, CENTER);
-  // setting gravity
-  g = createVector(0, G);
+  hMode = width > height;
+  tSize = hMode ? height/1.75 : height/6; // changing the vertical/horizontal text
 
-  // make a new trigger point to set the offsets for all the
-  triggerPoint = createVector(random(margin*width, (1-margin)*width), random(margin*height, (1-margin)*height));
-  
-  // generating image
   src = createGraphics(width, height);
   src.background(0);
   src.fill(255);
   src.noStroke();
   src.textAlign(CENTER, CENTER);
-  tSize = width > height ? height/1.75 : height/6; // changing the vertical/horizontal text
+  
   textFont('Courier New', tSize*2);
   src.textSize(tSize);
   src.textLeading(tSize);
-  sampleEvery = int(tSize / 50);
-  if(width > height){
+  
+  if(hMode){
     src.text(hWord, width/2, height/2);
   } else{
-    src.text(vWord, width/2, height/2);
+    src.text(vWord, width/2, 0.6*height);
   }
+
+  sampleEvery = hMode ? int(tSize / 50) : int(tSize/20);
+  textSize(sampleEvery);
+
+  endTarget = createVector(width/2, height/10);
 
   // sampling from src
   src.loadPixels();
@@ -86,7 +119,10 @@ function setup() {
 fill(255);
 
 // choose target thing
-robot = new Robot(-robotSpeed*framesToAppear*1.5, height/2);
+robot = new Robot(-robotSpeed*(framesToAppear+maxDelay)*1.5, height/2 - height/8);
+saucer = new Saucer(width/2, -height*1.5, height/20);
+// robot = new Robot(width/2, height/2);
+// robot.v.set(0,0);
 // robot.start();
   
 }
@@ -94,15 +130,99 @@ robot = new Robot(-robotSpeed*framesToAppear*1.5, height/2);
 function draw() {
   background(0);
   
-  // textSize(sampleEvery*8);
+  switch(hMode){
+    case true:
+      // for let l of letters, let them converge
+      if(frameCount - startFrame < phase1Frames){
+        for(let l of letters){
+          l.fall();
+          l.show();
+        }
+      } else {
+        for(let l of letters){
+          l.update();
+          l.show();
+        }
+      }
+      
+      // move the robot in
+      robot.update();
+      robot.show();
+
+      // stop him at 0.1*width and start up the laser
+      if(abs(robot.p.x - width/10) < robotSpeed){
+        robot.v.set(0,0);
+        if(robot.laserA <= -PI/12 ){
+          
+          robot.v.set(2*robotSpeed,0);
+        }
+        // hide letters
+        for(let l of letters){
+          let eyeline = createVector(robot.p.x, robot.eyeLevel);
+          let robot2letterheading = p5.Vector.sub(l.p, eyeline).heading();
+          if(robot2letterheading > robot.laserA){
+            l.colour = color(0);  
+          }
+        }
+      }
+      // robot triggered to move on when finished lasering
+      if(robot.p.x > width*1.2){
+        setup(); // restart
+        startFrame = frameCount;
+      }
+      break;
+
+
+    // in vertical mode
+    case false:
+      // during phase 1, fall
+      if(frameCount - startFrame < phase1Frames){
+        for(let l of letters){
+          l.fall();
+          l.show();
+        }
+      // and then form into the ASCII characters
+      } else {
+        for(let l of letters){
+          l.update();
+          l.show();
+        }
+      }
+
+      // at the end of phase 1, restart the starting point
+      if(frameCount - startFrame === phase1Frames){ 
+        for(let l of letters){
+          l.start.set(l.p.x, l.p.y); 
+          l.progress = 0;
+        }
+      }
+
+      if(frameCount - startFrame < phase1Frames + phase2Frames){
+        let progress = (frameCount - startFrame) / (phase1Frames + phase2Frames);
+        for(let l of letters){
+          l.p.x = lerp(l.start.x, endTarget.x, progress);
+          l.p.y = lerp(l.start.y, endTarget.y, progress);
+          if(l.p.y < height/10){
+            l.colour = color(0);
+          }
+        }
+      }
+      saucer.update();
+      saucer.show();
+      break;
+  }
+  
+  
+ 
+  
+
+  // image(saucerGraphic, 0,0);
 
 
   // spawn in letters
-  // for(let l of letters){
-  //   l.applyForce(g)
-  //   l.update();
-  //   l.show();
-  // }
+ 
+  
+  
 
  
   
@@ -110,102 +230,23 @@ function draw() {
   
   // textSize(sampleEvery);
   
-  textSize(tSize*standardTextSizeProportion);
-  for(let l of letters){
-    l.applyForce(g)
-    l.update();
-    l.show();
-  }
+  // textSize(tSize*standardTextSizeProportion);
+  
 
-  robot.update();
-  robot.show();
+  // text(saucer, width/2, height/2);
+  // for(let l of letters){
+  //   l.update();
+  //   l.show();
+  // }
 
-  for(let l of letters){
-    if(abs(l.p.x - robot.p.x) < closeEnough*width){
-      l.applyForce(p5.Vector.fromAngle(-PI/6, 0).setMag(100));;
-    }
-  }
   
   
   // image(src, 0,0);
 }
 
-class Robot{
-  constructor(x,y){
-    this.p = createVector(x,y);
-    this.v = createVector(robotSpeed,0);
-  }
-  
-  restart(x,y){
-    this.p.set(x,y);
-  }
 
-  update(){
-    this.p.add(this.v);
-  }
 
-  show(){
-    textSize(tSize*standardTextSizeProportion);
-    text(robotString, this.p.x, this.p.y);
-  }
-}
 
-class Letter{
-  constructor(x,y,t){
-    let a = random(TAU);
-    this.target = createVector(x,y);
-    // this.start = createVector(sqrt(2)*max(width, height)*cos(a),sqrt(2)*max(width,height)*sin(a)); // a randomPoint outside the screen
-    this.start = createVector(random(width), random(height));
-    this.p = createVector(x,y);
-    this.v = createVector(0,0);
-    this.a = createVector(0,0);
-    this.t = t;
-    this.cntrl = 0;
-    this.progress = 0;
-    this.isFixed = true;
-    this.fixForce = G*1.1;
-    this.d = p5.Vector.dist(triggerPoint, this.p);
-    // this.delay = map(this.d, 0, max(width, height)*sqrt(2),0,maxDelay);
-    this.delay = random(maxDelay);
-   
-  }
-
-  applyForce(f){
-    if(this.isFixed){
-      if(f.mag() < this.fixForce) return;
-      this.isFixed = false;
-    }
-    this.isFixed = false;
-    this.a.add(f);
-
-  }
-
-  update(){
-    
-    if(frameCount - startFrame > this.delay){
-      this.cntrl = min((frameCount + this.delay - startFrame)/framesToAppear,1); // limits x to between 0 and 1
-      this.progress = easeInOutSine(this.cntrl);
-      this.p.x = lerp(this.start.x, this.target.x, this.progress);
-      this.p.y = lerp(this.start.y, this.target.y, this.progress);
-    }
-    if(this.isFixed) return;
-    // else
-    this.v.add(this.a);
-    this.p.add(this.v);
-    this.a.set(0,0);
-  }
-
-  show(){
-    // things cloests to the trigger point get delayed the least
-    push();
-      translate(this.p.x, this.p.y);
-      scale(this.size);
-      textSize(tSize*standardTextSizeProportion);
-      text(this.t, 0, 0);
-    pop();
-    
-  }
-}
 
 // source: https://easings.net/#easeOutBack
 function easeOutBack(x){
@@ -222,17 +263,30 @@ function easeInOutSine(x){
 
 
 function sampleSource(){
+  letters = []; // clears on reset
   for(let y = 0; y < src.height; y += sampleEvery){
     for(let x = 0; x < src.width; x += sampleEvery){
       let index = (x + y*src.width)*4;
       if(src.pixels[index] === 255 && src.pixels[index+1] === 255 && src.pixels[index+2] === 255){
         letters.push(new Letter(x,y,random(["A","S","C","I","I"])));
-        locs.push(createVector(x,y));
       }
     }
   }
 }
 
+
+function generateGraphic(img, sampleRate, targetBrightness){
+  arr = []
+  for(let y = 0; y < img.height; y += sampleRate){
+    for(let x = 0; x < img.width; x += sampleRate){
+      let index = (x + y*img.width)*4;
+      if(img.pixels[index] === targetBrightness && img.pixels[index+1] === targetBrightness && img.pixels[index+2] === targetBrightness){
+        arr.push(new Letter(x,y,random(["A","S","C","I","I"])));
+      }
+    }
+  }
+  return arr;
+}
 
 /*
 First version: I was going to explode the things
