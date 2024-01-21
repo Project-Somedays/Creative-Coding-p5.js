@@ -83,17 +83,17 @@ function setup() {
   // image(img,0,0);
   img.loadPixels();
   // image(img, 0,0);
-  // for(let y = 0; y < img.height; y ++){
-  //   for(let x = 0; x < img.width; x ++){
-  //     let index = (x + y*img.width)*4;
-  //     let b = (img.pixels[index] + img.pixels[index+1]+ img.pixels[index+2])/3;
-  //     let col = classifyBrightness(b);
-  //     img.pixels[index] = red(col);
-  //     img.pixels[index+1] = green(col);
-  //     img.pixels[index+2] = blue(col);
-  //   }
-  // }
-  // img.updatePixels();
+  for(let y = 0; y < img.height; y ++){
+    for(let x = 0; x < img.width; x ++){
+      let index = (x + y*img.width)*4;
+      let b = (img.pixels[index] + img.pixels[index+1]+ img.pixels[index+2])/3;
+      let col = classifyBrightness(b);
+      img.pixels[index] = red(col);
+      img.pixels[index+1] = green(col);
+      img.pixels[index+2] = blue(col);
+    }
+  }
+  img.updatePixels();
   // image(img, img.width,0);
   // save(img,"3 Colour Image.png");
 
