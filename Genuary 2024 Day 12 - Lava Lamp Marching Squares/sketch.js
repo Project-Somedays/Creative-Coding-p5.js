@@ -7,21 +7,27 @@ Inspiration from Patt Vira: https://www.youtube.com/watch?v=wiPwD5nO7Ig and Dani
 */
 
 const res = 5;
-const s = 50;
+let s;
 let rows, cols;
 let testBlobA, testBlobB;
 let testBlobs = [];
-const n = 4;
+const n = 15;
+let g;
+const G = 0.001;
+const maxBForce = G*1.5;
+const maxTemp = 100;
 
 
 
 function setup(){
-  createCanvas(500, 500, P2D);
-  stroke(255);
-  strokeWeight(5);
+  createCanvas(360, 720, P2D);
+  stroke(255,0,0);
+  strokeWeight(10);
+  s = width/8;
   rows = height/res + 1;
   cols = width/res + 1;
   testBlobs = [];
+  g = createVector(0,G);
   for(let i = 0; i < n; i++){
     testBlobs.push(new Waxblob());
   }
