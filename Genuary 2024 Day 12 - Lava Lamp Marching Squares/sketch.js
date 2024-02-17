@@ -6,30 +6,32 @@ Title: Genuary 2024 Day 12 - Lava Lamp via Marching Squares
 Inspiration from Patt Vira: https://www.youtube.com/watch?v=wiPwD5nO7Ig and Daniel Shiffman https://www.youtube.com/watch?v=0ZONMNUKTfU
 */
 
-const res = 5;
+const res =10;
 let s;
 let rows, cols;
-let testBlobA, testBlobB;
-let testBlobs = [];
-const n = 15;
+
+let blobs = [];
+const n = 25;
+const sclFactor = 0.1;
 let g;
-const G = 0.001;
+const G = 0.002;
 const maxBForce = G*1.5;
 const maxTemp = 100;
+const maxRepelForce = G*100;
 
 
 
 function setup(){
-  createCanvas(360, 720, P2D);
+  createCanvas(1080, 1920, P2D);
   stroke(255,0,0);
   strokeWeight(10);
-  s = width/8;
+  s = width*sclFactor;
   rows = height/res + 1;
   cols = width/res + 1;
-  testBlobs = [];
+  blobs = [];
   g = createVector(0,G);
   for(let i = 0; i < n; i++){
-    testBlobs.push(new Waxblob());
+    blobs.push(new Waxblob());
   }
   // testBlobs = [testBlobB]
   // console.log(testBlobs);
@@ -40,9 +42,18 @@ function setup(){
 function draw(){
 background(0);
 noFill();
-for(let b of testBlobs){
-  b.update();
-  // b.show();
+for(let i = 0; i < blobs.length; i++){
+  for(let j = i; j < blobs.length; j++){
+    if(i === j) continue; // no need to check self
+    let d = p5.Vector.dist(blobs[i].p, blobs[j].p);
+    let r2r = blobs[i].r + blobs[i].r;
+    if(d > r2r) continue; // no intersection? Continue
+    let f = p5.Vector.sub(blobs[j].p,blobs[j].p).setMag(map(d, 0, r2r, maxRepelForce, 0));
+    blobs[i].applyForce(f);
+    blobs[j].applyForce(p5.Vector.mult(f,-1));
+  }
+  blobs[i].update();
+  // blobs[i].show();
 }
 // circle(mouseX, mouseY, s);
 // testBlobB.p.set(mouseX, mouseY);
@@ -58,7 +69,7 @@ for(let col = 0; col < cols; col++){
     let x = col*res;
     let y = col*res;
     let v = 0;
-    for(let b of testBlobs){
+    for(let b of blobs){
       v += Math.pow(b.r,2) / (Math.pow(col*res - b.p.x, 2) + Math.pow(row*res - b.p.y, 2));
     }
     column.push(v);
@@ -68,7 +79,7 @@ for(let col = 0; col < cols; col++){
 
 // draw the grid
 noFill();
-strokeWeight(1);
+// strokeWeight(1);
 for(let col = 0; col < cols - 1; col++){
   for(let row = 0; row < rows - 1; row++){
     // square(col*res, row*res, res);
