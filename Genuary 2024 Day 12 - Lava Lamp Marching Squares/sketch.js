@@ -22,7 +22,8 @@ const maxRepelForce = G*100;
 
 
 function setup(){
-  createCanvas((9/16)*windowHeight, windowHeight, P2D);
+  // createCanvas((9/16)*windowHeight, windowHeight, P2D);
+  createCanvas(1080, 1920, P2D); // for reels
 	pixelDensity(1);
   stroke(255,0,0);
   strokeWeight(5);
