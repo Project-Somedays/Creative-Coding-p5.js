@@ -9,7 +9,7 @@ VERY keen to see how other people did it because I very much stumbled my way thr
 I made the Totoro image square with the centre exactly where I wanted the centre of the next one to appear.
 In retrospect, I made this a bit low, but I'm well done with this project.
 
-Pretty sure the loop
+My idea was to make a recursive graphic and then scale it up to a point and then reset.
 */
 let totoro;
 const recursionDepth = 6; // this is honestly overkill
@@ -22,7 +22,8 @@ function preload(){
   totoro = loadImage("TotoroV3@2x.png");
 }
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // createCanvas(windowWidth, windowHeight);
+  createCanvas(1080, 1080);
   imageMode(CENTER);
   ts = min(height, width)/totoro.height; //scaling Totoro to fit the screen regardless of orientation
 }
