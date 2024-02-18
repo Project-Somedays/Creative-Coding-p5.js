@@ -6,12 +6,12 @@ Title: Genuary 2024 Day 12 - Lava Lamp via Marching Squares
 Inspiration from Patt Vira: https://www.youtube.com/watch?v=wiPwD5nO7Ig and Daniel Shiffman https://www.youtube.com/watch?v=0ZONMNUKTfU
 */
 
-const res =10;
+const res=10;
 let s;
 let rows, cols;
 
 let blobs = [];
-const n = 25;
+const n = 20;
 const sclFactor = 0.1;
 let g;
 const G = 0.002;
@@ -22,9 +22,10 @@ const maxRepelForce = G*100;
 
 
 function setup(){
-  createCanvas(1080, 1920, P2D);
+  createCanvas((9/16)*windowHeight, windowHeight, P2D);
+	pixelDensity(1);
   stroke(255,0,0);
-  strokeWeight(10);
+  strokeWeight(5);
   s = width*sclFactor;
   rows = height/res + 1;
   cols = width/res + 1;
@@ -64,7 +65,7 @@ for(let i = 0; i < blobs.length; i++){
 // construct the grid
 let grid = [];
 for(let col = 0; col < cols; col++){
-  let column = [];
+  let colVals = [];
   for(let row = 0; row < rows; row++){
     let x = col*res;
     let y = col*res;
@@ -72,9 +73,9 @@ for(let col = 0; col < cols; col++){
     for(let b of blobs){
       v += Math.pow(b.r,2) / (Math.pow(col*res - b.p.x, 2) + Math.pow(row*res - b.p.y, 2));
     }
-    column.push(v);
+    colVals.push(v);
   }
-  grid.push(column);
+  grid.push(colVals);
 }
 
 // draw the grid
