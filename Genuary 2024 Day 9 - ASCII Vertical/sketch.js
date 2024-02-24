@@ -65,6 +65,9 @@ const totalFrames = phase1Frames + phase2Frames + phase3Frames;
 
 function setup() {
   createCanvas(1080, 1920);
+  
+  pixelDensity(1);
+
   cycleRate = random(1,15); // set the cycle rate each frame
   cycleOffset = random(); // how much should the x,y position influence the offset
   
@@ -116,6 +119,7 @@ function draw() {
   if(currentFrame === 0){
     lerpProgress = 0;
     abductionProgress = 0;
+    
   }
   
   if(currentFrame <= phase1Frames){
@@ -177,5 +181,4 @@ function easeInQuart(x){
 function easeInOutQuint(x){
   return x < 0.5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2;
 }
-
   
