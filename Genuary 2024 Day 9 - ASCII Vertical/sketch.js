@@ -1,6 +1,4 @@
-
 /*
-
 Author: Project Somedays
 Date: 2024-02-24
 Title: Genuary 2024 Day 9 - ASCII
