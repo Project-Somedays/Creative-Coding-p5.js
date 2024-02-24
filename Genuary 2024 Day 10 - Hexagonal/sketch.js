@@ -10,7 +10,7 @@ Opportunities:
 // let colours = ['#d9ed92', '#b5e48c', '#99d98c', '#76c893', '#52b69a', '#34a0a4', '#168aad', '#1a759f', '#1e6091', '#184e77'].reverse();
 // let colours = ['#2d00f7', '#6a00f4', '#8900f2', '#a100f2', '#b100e8', '#bc00dd', '#d100d1','#db00b6', '#e500a4', '#f20089'];
 let colours = ["#ff0000","#ff8700","#ffd300","#deff0a","#a1ff0a","#0aff99","#0aefff","#147df5","#580aff","#be0aff"];
-let nx = 25;
+let nx = 20;
 let ny; // because of how hexagons tesselate, there needs to be more rows than columns
 let r, halfSide, R;
 let zoomFactor = 400;
@@ -21,8 +21,11 @@ let step = 5;
 
 function setup() {
   // createCanvas(windowHeight, windowHeight, P2D);
-  createCanvas(1080, 1080, P2D);
-  ny = nx*1.2; // this could be more exact, but I can't be bothered to do the maths
+  // createCanvas(1080, 1080, P2D);
+  createCanvas(1080, 1920, P2D);
+  pixelDensity(1);
+  frameRate(30);
+  ny = nx*(1920/1080); // this could be more exact, but I can't be bothered to do the maths
   r = width/(2*(nx-1.5)); // same as above. Just ensures it fits on the screen nicely
   R = r/cos(PI/6);
   halfSide = R*sin(PI/6);

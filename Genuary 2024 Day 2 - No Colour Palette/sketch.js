@@ -10,7 +10,7 @@ const brushCount = 5;
 const aChangeMax = 1; // to be converted degrees to radians
 const maxLowerSpectrumCutOffFrac = 0; // where do we want start the spectrum
 let colours;
-const n = 50; // ultimately sets resolution
+const n = 75; // ultimately sets resolution
 let res;
 let globOff = 0;
 let pSquares = [];
@@ -26,10 +26,10 @@ let channelCMin;
 
 
 function setup() {
-  background(width/2);
   // createCanvas(min(windowHeight,windowWidth), min(windowHeight,windowWidth));
-  createCanvas(1080, 1080);
-
+  createCanvas(1080, 1920, P2D);
+  frameRate(30);
+  pixelDensity(1);
   const colourMin = () => random(maxLowerSpectrumCutOffFrac)*width; // returns the start of the colour window
   
   // making the colour windows
@@ -50,8 +50,8 @@ function setup() {
   console.log(orderMap);
 
   // setting the bounds of brushes
-  bMax = width/5;
-  bMin = width/10;
+  bMax = max(width,height)/5;
+  bMin = max(width,height)/10;
 
   // setting the size of the 
   res = height/n;
