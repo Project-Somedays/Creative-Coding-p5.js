@@ -42,7 +42,7 @@ let lerpPos = 0;
 let lerpSliderControl = 0;
 // Draw myself a timeline
 const startPhaseDuration = 200;
-const convergeDuration = 200;
+const convergeDuration = 100;
 const textDuration = 200;
 const scatterDuration = 200;
 const endPhaseDuration = 200;
@@ -71,7 +71,8 @@ function preload(){
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // createCanvas(windowWidth, windowHeight);
+  createCanvas(1080, 1080);
   imageMode(CENTER);
   // pixelDensity(1);
   

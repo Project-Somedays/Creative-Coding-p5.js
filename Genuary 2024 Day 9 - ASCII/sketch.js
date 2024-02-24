@@ -56,6 +56,7 @@ let robotString = String.raw`
    /___n_n___\  /___n_n___\
 `
 
+// source: https://www.asciiart.eu/space/aliens courtesy of hjw
 let saucerText = `
   _____
   ,-"     "-.

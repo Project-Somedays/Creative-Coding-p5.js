@@ -24,7 +24,7 @@ Issues:
 // targetcolour = rgb(255, 179, 146);
 
 // leg biz
-const legPropofHeight = 1;
+const legPropofHeight = 0.75;
 let legScale;
 let targets = [];
 
@@ -59,8 +59,8 @@ let timelineFrame = 0;
 let theChosenOne;
 let landingCntrl = 0;
 let chosenTarget;
-const minFramesBetweenCycles = 300;
-const maxFramesBetweenCycles = 800;
+const minFramesBetweenCycles = 100;
+const maxFramesBetweenCycles = 300;
 
 // testing
 let testMozzie;
@@ -90,13 +90,13 @@ function preload(){
 
 
 function setup() {
-  createCanvas(windowHeight, windowHeight);
-  
+  // createCanvas(windowHeight, windowHeight);
+  createCanvas(1080, 1920);  
   // basic settings
   imageMode(CENTER);
   pixelDensity(1);
   textAlign(CENTER, CENTER);
-  textSize(height/20);
+  textSize(min(width,height)/20);
   rectMode(CENTER);
 
  
@@ -182,7 +182,7 @@ function draw() {
       highlightChosenOne()
       fill(255);
       rect(width/2, height*0.2, mL.width*mS, mL.height*mS);
-      theChosenOne.show(mS*10, createVector(width/2, height*0.2)); // draw the enlarged version
+      theChosenOne.show(mS*5, createVector(width/2, height*0.2)); // draw the enlarged version
       noStroke();
       fill(255,0,0);
       text(str(int(100*theChosenOne.fillProgress)) + "%", width/2, height*0.30);

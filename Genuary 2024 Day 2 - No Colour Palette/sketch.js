@@ -27,7 +27,8 @@ let channelCMin;
 
 function setup() {
   background(width/2);
-  createCanvas(min(windowHeight,windowWidth), min(windowHeight,windowWidth));
+  // createCanvas(min(windowHeight,windowWidth), min(windowHeight,windowWidth));
+  createCanvas(1080, 1080);
 
   const colourMin = () => random(maxLowerSpectrumCutOffFrac)*width; // returns the start of the colour window
   
