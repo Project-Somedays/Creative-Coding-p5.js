@@ -29,7 +29,9 @@ let tRate; // parametric variable for the wobbly function
 let aRate; // rotation rate
 
 function setup() {
-  createCanvas(1080, 1080);
+  // createCanvas(1080, 1080);
+  createCanvas(1080, 1920, P2D);
+  pixelDensity(1);
   background(0);
   
   tRate = random(-0.03, 0.03);

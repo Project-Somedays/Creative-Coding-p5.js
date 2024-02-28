@@ -25,7 +25,7 @@ function setup() {
   createCanvas(1080, 1920, P2D);
   pixelDensity(1);
   frameRate(30);
-  ny = nx*(1920/1080); // this could be more exact, but I can't be bothered to do the maths
+  ny = nx*(1.2*1920/1080); // this could be more exact, but I can't be bothered to do the maths
   r = width/(2*(nx-1.5)); // same as above. Just ensures it fits on the screen nicely
   R = r/cos(PI/6);
   halfSide = R*sin(PI/6);
@@ -39,8 +39,11 @@ function setup() {
 
 function draw() {
   background(0);
+  push();
+  translate(0,-100);
   updateShift();
   updateAndShowGrid();
+  pop();
   t += tSpeed;
   
 }
