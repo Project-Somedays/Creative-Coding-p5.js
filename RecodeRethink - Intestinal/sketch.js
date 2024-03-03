@@ -3,11 +3,17 @@
 
 let shapes = [];
 let noiseSpreadMultiplier = 2.0;
-let yField, dField, sepField, tField;
+let xField, dField, sepField, tField;
 let currentIndex = 0;
 let span;
 let globA;
 let colours;
+let twists;
+
+// capture variables
+let capture;
+const canvasID = 'canvas'
+
 
 // colours = ['#565554', '#2e86ab', '#f6f5ae', '#f5f749',' #f24236'];
 const colourPalettes = [
@@ -24,15 +30,25 @@ const colourPalettes = [
 ];
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  let canvas = createCanvas(1080, 1920, P2D);
+  twists = int(random(2,5));
+
+
+  // setting up the capture
+  canvas.id(canvasID);
+  capture = new CCapture({
+	format : 'png',
+	name : 'capture'
+  });
+
 	pixelDensity(1);
   rectMode(CENTER);
 	colours = random(colourPalettes);
 	// angleMode(DEGREES);
-	span = int(0.8*width);
-	yField = getLoopValues(-height/2, height/2);
-	dField = getLoopValues(0.05*height, 0.1*height);
-	sepField = getLoopValues(0.05*height, 0.3*height);
+	span = int(1.2*height);
+	xField = getLoopValues(-width/2, width/2);
+	dField = getLoopValues(0.05*width, 0.1*width);
+	sepField = getLoopValues(0.05*width, 0.3*width);
 	tField = getLoopValues(-2*TWO_PI, 2*TWO_PI);
 	globA = 0;
 	
@@ -40,8 +56,8 @@ function setup() {
 	for(let i = 0; i < span; i++){
 		shapes.push(
     new Shape(
-      width * 0.9,
-      height / 2 + yField[currentIndex],
+      width / 2 + xField[currentIndex],
+      1.2*height,
       dField[currentIndex],
       sepField[currentIndex],
       tField[currentIndex]
@@ -55,7 +71,7 @@ function setup() {
 		}
 		
 		currentIndex = (currentIndex + 1)%span;
-		globA += 2*TWO_PI/span; // in one loop, it should twist a whole number of times
+		globA += twists*TWO_PI/span; // in one loop, it should twist a whole number of times
 	}
 	
 	
@@ -63,7 +79,16 @@ function setup() {
 
 function draw() {
   // background("#E7ECF2");
+  console.log(frameCount);
 	background(0);
+  if(frameCount === 1) capture.start();
+	if(frameCount > span){
+		noLoop();
+		capture.stop()
+		capture.save();
+		console.log("End of animation! Saving now...")
+		return;
+	}
 
 
 	/*
@@ -84,8 +109,8 @@ function draw() {
 	*/
 	shapes.push(
     new Shape(
-      width * 0.9,
-      height / 2 + yField[currentIndex],
+      width / 2 + xField[currentIndex],
+      height * 1.2,
       dField[currentIndex],
       sepField[currentIndex],
       tField[currentIndex]
@@ -105,6 +130,7 @@ function draw() {
 	
 	currentIndex = (currentIndex + 1)%span;
 	globA += 2*TWO_PI/span; // in one loop, it should twist a whole number of times
+  capture.capture(document.getElementById(canvasID));
 }
 
 function getLoopValues(minVal, maxVal){

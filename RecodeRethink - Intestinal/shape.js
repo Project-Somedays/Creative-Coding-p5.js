@@ -9,8 +9,8 @@ class Shape {
     }
   
     move() {
-      this.x -= 2;
-      if (this.x < width*0.1) {
+      this.y -= 2;
+      if (this.y < -height*0.2) {
         this.isFinish = true;
       }
     }

@@ -239,4 +239,4 @@ function getCurrentDateTime() {
     return `${year}-${month}-${day}_${hours}-${minutes}`;
 }
 
-console.log(getCurrentDateTime());
+// console.log(getCurrentDateTime());
