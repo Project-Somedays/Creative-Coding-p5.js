@@ -11,19 +11,39 @@ const colours = [
 ["#390099","#9e0059","#ff0054","#ff5400","#ffbd00"]
 ];
 // let colours = ;
+let capture;
+const canvasID = 'canvas'
+const frameLimit = 600;
+const opacity = 15;
+const maxSpawnWiggle = 0.15;
+const maxSpawnFreq = 5;
+let spawnWiggleAmp;
+let spawnWiggleFreq;
 
 
 let swarm = [];
-let n = 100;
-let maxR = 50;
-let minR = 50;
+let n;
+let maxR;
+let minR;
+
 let D, r;
 
 let selectedPalette;
 
 function setup() {
-	// createCanvas(windowWidth, windowHeight);
-  createCanvas(1080, 1920, P2D);
+//   createCanvas(windowWidth, windowHeight);
+  let canvas = createCanvas(1080, 1920, P2D);
+  n = int(random(25,150));
+  spawnWiggleAmp = random(-maxSpawnWiggle, maxSpawnWiggle);
+  spawnWiggleFreq = random(-maxSpawnFreq,maxSpawnFreq);
+  maxR = 3*height/n;
+  minR = 2*height/n;
+  canvas.id(canvasID);
+  capture = new CCapture({
+	format : 'png',
+	name : 'capture'
+  });
+
   pixelDensity(1);
   selectedPalette = random(colours);
 	D = 2*maxR;
@@ -32,12 +52,12 @@ function setup() {
 	// swarm.push(new Mover(width/4, height/2 + 100, cos(-PI/6), sin(-PI/6)));
 	for(let i = 0; i < n; i++){
 		// let x = random(width/3, 2*width/3);
-    let x = width/2 + 0.2*width*cos(map(i, 0, 99, 0, TWO_PI))
 		let y = random(height);
+    	let x = width/2 + spawnWiggleAmp*width*cos(spawnWiggleFreq*map(y, 0, height, 0, TWO_PI));
 		let a = random(TWO_PI);
 		let velX = cos(a);
 		let velY = sin(a);
-		let col = hexToRGBA(random(selectedPalette),5);
+		let col = hexToRGBA(random(selectedPalette),opacity);
 		let r = random(minR, maxR);
 		swarm.push(new Mover(x,y, velX, velY, col, r));
 		
@@ -50,9 +70,21 @@ function setup() {
 	// for(let i = 0; i < n; i++){
 	// 	swarm.push(new Mover(width/2, height/2, random(), random()));
 	// }
+
+	
 }
 
 function draw() {
+	if(frameCount === 1) capture.start();
+	if(frameCount > frameLimit){
+		noLoop();
+		capture.stop()
+		capture.save();
+		console.log("End of animation! Saving now...")
+		return;
+	}
+	// console.log(frameCount);
+	
 	// background(0);
 	for(let i = 0; i < swarm.length; i++){
 		swarm[i].update();
@@ -82,6 +114,8 @@ function draw() {
 			}
 		}
 	}
+
+	capture.capture(document.getElementById(canvasID));
 }
 
 class Mover{
@@ -187,3 +221,22 @@ function getSketchName() {
   
   return sketchName;
 }
+
+function getCurrentDateTime() {
+    const now = new Date();
+    
+    const year = now.getFullYear();
+    
+    // Months are zero-based, so add 1 to get the current month
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    const hours = String(now.getHours()).padStart(2, '0');
+    
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day}_${hours}-${minutes}`;
+}
+
+console.log(getCurrentDateTime());
