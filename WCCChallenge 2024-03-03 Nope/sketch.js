@@ -4,6 +4,8 @@ Date: 2024-03-03
 Title: WCCChallenge "Nope"
 
 Building off a sketch by Daniel Shiffman, video: https://youtu.be/10st01Z0jxc
+Only show inverse kinematic legs when they're close enough to the eye cluster
+Move pupils in eye cluster depending on position on screen using noisefield
 */
 
 let img;
