@@ -43,16 +43,16 @@ function preload(){
 
 
 function setup() {
-    createCanvas(1080, 1080, P2D);
-    scl = width/img.width;
-    yardstick = min(width, height);
+    createCanvas(1080, 1920, P2D);
+    scl = height/img.height;
+    yardstick = max(width, height);
     pos = createVector(0,0);
     xOff = random(1000);
     yOff = random(1000);
-    segL = 0.33*yardstick;
+    segL = 0.2*yardstick;
     
 
-    creature = new EyeCluster(0.03*yardstick);
+    creature = new EyeCluster(0.02*yardstick);
 
     
     for (let a = 0; a < n; a ++) {
