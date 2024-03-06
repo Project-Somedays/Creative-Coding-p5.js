@@ -16,7 +16,9 @@ const swarmProgressRate = 0.01;
 let img;
 let darkestYellow; 
 let yellow;
-let f;
+let convergeTracker = 0;
+let a = 0;
+
 
 function preload(){
   img = loadImage("Nathan Fillion.png");
@@ -26,25 +28,26 @@ function setup() {
   createCanvas(1080, 1080, P2D);
   darkestYellow = color(139, 128, 0);
   yellow = color(255, 255, 0);
-  neighbourhood = 0.25*max(width, height);
+  neighbourhood = 0.5*max(width, height);
   swarm = new Swarm(sampleCount);
   console.log(swarm.swarm.length);
   noStroke();
   frameRate(30);
   img = convertToFireflyColours(img);
-  f = convertImageToField(img, 10);
+  swarm = convertImageToSwarm(img, 10);
   
 }
 
 function draw() {
   background(0);
   // image(img, 0, 0);
-  // swarm.update();
-  // swarm.show();
-  for(let fObj of f){
-    fill(fObj.col);
-    circle(fObj.p.x, fObj.p.y, 10);
-  }
+  swarm.update();
+  swarm.show();
+  convergeTracker = 0.5*(sin(a) + 1);
+  fill(255);
+  text(convergeTracker, 10,10);
+  a += TWO_PI/300;
+  
 
   globOffset += swarmProgressRate;
 }
@@ -67,14 +70,15 @@ function convertToFireflyColours(imageToConvert){
   return imageToConvert;
 }
 
-function convertImageToField(imageToConvert, sampleEvery){
-  field = [];
+function convertImageToSwarm(imageToConvert, sampleEvery){
+  fireflies = [];
   for(let y = 0; y < imageToConvert.height; y+= sampleEvery){
     for(let x = 0; x < imageToConvert.width; x+= sampleEvery){
       let ix = (x + y*imageToConvert.width)*4;
+      if(imageToConvert.pixels[ix+3] === 0) continue; // ignore transparent values
       let c = color(imageToConvert.pixels[ix], imageToConvert.pixels[ix+1], imageToConvert.pixels[ix+2]);
-      field.push({p: createVector(x,y), col: c});
+      fireflies.push(new FireFly(x,y,c, sampleEvery));
     }
   }
-  return field;
+  return new Swarm(fireflies);
 }
