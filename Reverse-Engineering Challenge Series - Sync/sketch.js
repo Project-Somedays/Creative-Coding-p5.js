@@ -9,75 +9,122 @@ I saw something crazy like this made in blender a few years back and thought I'd
 */
 
 const petalCount = 24;
-let petalsA = [];
-let petalsB = [];
+const noiseZoom = 0.3;
+let petalStackC;
 let globA = 0;
 let test;
 let globRate;
 let nVals = [];
+let displayD, displayR;
 let r;
-let colours = ["#000814", "#001d3d", "#003566", "#ffc300", "#ffd60a"];
-let noiseZoom = 0.1;
+let colour2 = [{'dark': '#041017', 'light':'#145277'}, {'light': '#83d0cb', 'dark': "#0d1414"}];
+let colour3 = [
+  {'light' : '#26547c', 'dark' : '#071018'},
+  {'light' : '#ef476f', 'dark' : '#2F0E16'},
+  {'light' : '#ffd166', 'dark' : '#332914'}
+]
+
+let colour4 = [
+  {'light' : '#26547c', 'dark' : '#010D11'},
+  {'light' : '#ef476f', 'dark' : '#2F0E16'},
+  {'light' : '#ffd166', 'dark' : '#332914'},
+  {'light' : '#06d6a0', 'dark' : '#012A20'}
+]
+
+let colour5 = [
+  {'light' : '#118ab2', 'dark' : '#010D11'},
+  {'light' : '#ef476f', 'dark' : '#2F0E16'},
+  {'light' : '#ffd166', 'dark' : '#332914'},
+  {'light' : '#06d6a0', 'dark' : '#012A20'},
+  {'light' : '#073b4c', 'dark' : '#000507'}
+]
+
+let colour6 = [
+  {'light' : '#073b4c', 'dark' : '#000507'},
+  {'light' : '#ef476f', 'dark' : '#2F0E16'},
+  {'light' : '#f78c6b', 'dark' : '#180E0A'},
+  {'light' : '#ffd166', 'dark' : '#332914'},
+  {'light' : '#06d6a0', 'dark' : '#012A20'},
+  {'light' : '#118ab2', 'dark' : '#010D11'}
+]
+
+let petalStacks = [];
+let selectedPalette;
+
 
 
 
 function setup(){
-  createCanvas(windowWidth, windowHeight, P2D);
-  // colours = [color(255, 0 ,0), color(0, 255, 0)];
+  // createCanvas(windowWidth, windowHeight, P2D);
+  createCanvas(1080, 1920, P2D);
+  petalStackC = createVector(width/2, height/3);
+  selectedPalette = [...colour6];
   r = width/6;
+  // stroke(255);
   noStroke();
-  globRate = TAU/500;
-  for(let i = 0; i < colours.length; i ++){
-    nVals.push({rate: i + 1, colour: colours[i]});
+  displayD = 0.3*width;
+  displayR = 0.5*displayD;
+  globRate = TAU/1000; 
+  for(let i = 0; i < selectedPalette.length; i++){
+    petalStacks.push(
+      new PetalStack(
+        hexToRgb(selectedPalette[i].light), 
+        hexToRgb(selectedPalette[i].dark),
+        i+1));
   }
 
-  colorMode(HSB, 360, 100, 100);
-  for (let i = 0; i < petalCount; i++) {
-    petalsA.push(new Petal(
-      1 + i * 0.5,
-      (i * QUARTER_PI) / (petalCount / 4),
-      color(193, 90, 93 - (i * 92) / petalCount))
-    )
-    petalsB.push(new Petal(
-      1 + i * 0.5,
-      TWO_PI/3 + (i * QUARTER_PI) / (petalCount / 4),
-      color(320, 55, 93 - (i * 92) / petalCount))
-    )
-  }
-  
+  console.log(colour2[0]);
+
+  console.log(petalStacks);
 
 }
+  
 
 function draw(){
 background(0);
-for(let i = petalsA.length - 1; i > 0; i--){
-  let noiseXA = noiseZoom*cos(globA - petalsA[i].offset);
-  let noiseYA = noiseZoom*sin(globA - petalsA[i].offset);
-  let noiseXB = noiseZoom*cos(2*globA - petalsB[i].offset);
-  let noiseYB = noiseZoom*sin(2*globA - petalsB[i].offset);
-  let noiseValA = noise(noiseXA, noiseYA);
-  let noiseValB = noise(noiseXB, noiseYB);
-  let currentA = map(noiseValA, 0, 1, -2*PI/3, 2*PI/3);
-  let currentB = map(noiseValB, 0, 1, -2*PI/3, 2*PI/3);
-  petalsA[i].show(currentA);
-  petalsB[i].show(currentB + TWO_PI/3);
+
+for(let stack of petalStacks){
+  stack.update();
 }
+// interleave petal stacks
+for(let i = petalCount - 1; i >= 0; i--){
+  for(let j = 0; j < petalStacks.length; j++){
+    petalStacks[j].petals[i].show();
+  }
+}
+
+stroke(100);
+strokeWeight(5);
+push();
+translate(width/2, 0.8*height);
+noFill();
+circle(0, 0, displayD);
+for(let i = 0; i < selectedPalette.length; i++){
+  let x = displayR*cos((i+1)*globA);
+  let y = displayR*sin((i+1)*globA);
+  fill(selectedPalette[i].light);
+  circle(x,y,width/20);
+  
+  
+}
+pop();
+noStroke();
 globA += globRate;
 
-// push();
-// translate(width/2, 3*height/4);
-// noFill();
-// stroke(255);
-// strokeWeight(5);
-// circle(0, 0, r);
-// for(let n of nVals){
-//   let x = 0.5*r*cos(n.rate*globA);
-//   let y = 0.5*r*sin(n.rate*globA);
-//   fill(n.colour);
-//   circle(x,y,r/8);
-// }
-// pop();
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+
+  var bigint = parseInt(hex, 16);
+
+  var r = (bigint >> 16) & 255;
+  var g = (bigint >> 8) & 255;
+  var b = bigint & 255;
+
+  return color(r, g, b);
 }
 
 
-// function dra
+
+
