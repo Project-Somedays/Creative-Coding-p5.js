@@ -2,14 +2,14 @@ class Petal{
     constructor(scale, offset, colour, petalPeriod){
         this.scale = scale;
         this.offset = offset;
+        this.col = colour;
         this.toTip = this.scale*width/petalCount;
         this.r = this.toTip/3;
-        this.col = colour;
         this.start = createVector(this.toTip/10,0);
         this.tip = createVector(this.toTip,0);
         this.right = createVector(this.r*cos(PI/6), this.r*sin(PI/6));
         this.left = createVector(this.r*cos(-PI/6), this.r*sin(-PI/6));
-        this.a = -HALF_PI;
+        this.a = 0;
         this.petalPeriod = petalPeriod;
     }
 
