@@ -3,36 +3,46 @@ Author: Project Somedays
 Date: 2024-03-05
 Title: #WCCChallenge "Firefly"
 
-Using a technique I've used a few times now to form the cast of firefly out of fireflies.
-Fireflies move with perlin noise within a bounding box
-To make the movement more naturalistic as they converge, rather than setting their position directly, we just make the bounding box smaller
-Once an image is revealed, the fireflies are remapped to their new targets
+Using a technique I've been experimenting with to make the cast of Firefly out of Fireflies =)
+Needed a mapping of greyscale brightness to a yellow spectrum
+I want naturalistic movement = mapping 1D perlin noise values to position on the screen for x and y for each firefly
+We sample from the target image and give each firefly a target position and colour
+So they're not moving too far, we set a bounding box/neighbourhood for them to fly in
+To give the impression of 3D, we randomise the size of the fireflies
+To get a naturalistic look when we converge on the target, we just shrink the bounding box (as opposed to setting the position of the fireflies directly)
+So we're not giving the game away, fireflies lerpColor between plain yellow and their target colour in diverged and converged states respectively
+Quad easing function keeps the lerp looking fluid
 */
 
+// control variables
+const swarmProgressRate = 0.01; // how much should they fly around
+const framesPerCycle = 300; // frames between one image and the next
+let globOffset = 0; // current 1D Perlin Noise input
 
-let globOffset = 0;
-const framesPerCycle = 300;
-const sampleEvery = 10;
-const swarmProgressRate = 0.01;
 
-
-let swarm;
-let neighbourhood;
-
+// images and sampling settings
+let sampleEvery;
+let darkestYellow, yellow, transparent;
 let imgReynolds, imgJayne, imgZoe, imgWash, imgSummer, imgKaylee, imgInara, imgSimon, imgShepherd, imgSerenity;
-let darkestYellow; 
-let yellow;
-let convergeTracker = 0;
-let a = 0;
-let flashCycle = 0;
-let flashCycleRate;
-let chosenImg;
-let cycleOrder;
-let castIndex = 0;
+let carousel; // for setting up a specific order of the images
+let cIx; // carousel index
+let scaleFactor; // window size responsiveness
+let maxTargets; // how big is the biggest array of targets?
+
+// lerping function and tracking
+// const easeInOutQuad = (x) => {x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2};
+let convergeTracker = 0; // global lerp slider
+let easingX = 0; // easing input
+
+// global sequence tracking
 let currentFrame = 0;
 let firstCycle = true;
 
+// firefly biz 
+let swarm;
+let neighbourhood;
 
+// loading all the images
 function preload(){
   imgReynolds = loadImage("imagesFinal/Nathan Fillion.png");
   imgJayne = loadImage("imagesFinal/Jayne Cobb.png");
@@ -50,51 +60,55 @@ function setup() {
   createCanvas(windowWidth, windowHeight, P2D);
   noStroke();
   frameRate(30);
+  pixelDensity(1);
+  
+  // all images are the same height (1080px) by design
+  scaleFactor = 0.8*height/1080;
+  sampleEvery = int(height/100); //also set the size of the fireflies
+
+  // setting colour values
   yellow = color(255, 255, 0);
-  darkestYellow = color(139, 128, 0);
-  
-  neighbourhood = 0.3*max(width, height); // the neighbourhood determines the default size of the bounding box for each firefly
-  
-  // testTargets = convertImageToTargets(imgReynolds);
-  // console.log(testTargets);
-  // swarm = new Swarm(testTargets);
-  console.log(swarm);
-  // // convert all the images to arrays of targets
-  cycleOrderTargets = [imgReynolds, imgJayne, imgKaylee, imgZoe, imgWash, imgSummer, imgShepherd].map(convertImageToTargets);
-  
-  // console.log(cycleOrderTargets);
-  // // make a swarm
-  swarm = new Swarm(cycleOrderTargets[castIndex]);
-  
+  darkestYellow = color(131,77,13);
+  transparent = color(255, 255, 0, 0);
 
-  flashCycleRate = TAU/10;
-  console.log(`castIndex: ${castIndex}`);
-
+  // the neighbourhood determines the default size of the bounding box for each firefly
+  neighbourhood = 0.3*max(width, height);     
   
+  // convert all the images to arrays of targets
+  carousel = [imgShepherd, imgReynolds, imgJayne, imgKaylee, imgZoe, imgWash, imgSummer, imgSimon, imgInara].map((each) => convertImageToTargets(each, scaleFactor));
+  carouselLengths = carousel.map(e => e.length)
+  maxTargets = max(carouselLengths); // sets the size of the array
   
+  // make a swarm
+  swarm = new Swarm(carousel[0], carousel[1]);
+  cIx = 1;    
 }
 
 function draw() {
   background(0);
-  image(imgSerenity, 0,0);
+  image(imgSerenity, 0,0, imgSerenity.width*(height/1080), imgSerenity.height*(height/1080));
 
   currentFrame = frameCount % framesPerCycle; // tracker for how far we are through the cycle
-  a = currentFrame*TWO_PI/framesPerCycle;
+  
+  // 
+  if(currentFrame < framesPerCycle/2){
+    easingX += 2/framesPerCycle;
+  } else {
+    easingX -= 2/framesPerCycle;
+  }
 
-  convergeTracker = 0.5*(sin(a-HALF_PI) + 1); // sine easing function
+  // convergeTracker = 0.5*(sin(a-HALF_PI) + 1); // sine easing function
+  convergeTracker = easeInOutQuad(easingX);
   
   swarm.update();
   swarm.show();
  
-
-  
-  
-  // // MOVE ON TO THE NEXT IMAGE
+  // MOVE ON TO THE NEXT IMAGE
   if(currentFrame === 0 && !firstCycle){
-    a = 0; // reset a
-    castIndex = (castIndex + 1)%cycleOrderTargets.length; // loop the targets
-    swarm.mapFireFliesToTargets(cycleOrderTargets[castIndex]); // remap
-    console.log(`castIndex: ${castIndex}`);
+    easingX = 0; // reset a
+    cIx = (cIx + 1)%carousel.length; // loop the images
+    swarm.cycle(carousel[cIx]) // remap
+    console.log(`castIndex: ${cIx}`);
   }
   
   // flashCycle += flashCycleRate;
@@ -103,27 +117,13 @@ function draw() {
   
 }
 
-// function convertToFireflyColours(imageToConvert){
-//   // shift pixels in img to yellow colour space
-//   imageToConvert.loadPixels();
-//   for(let y = 0; y < imageToConvert.height; y++){
-//     for(let x = 0; x < imageToConvert.width; x++){
-//       let ix = (x + y*imageToConvert.width)*4;
-//       let brightness = int((imageToConvert.pixels[ix] + imageToConvert.pixels[ix+1] + imageToConvert.pixels[ix+2])/3);
-//       let cVal = map(brightness, 0, 255, 0, 1);
-//       let c = lerpColor(darkestYellow, yellow, cVal);
-//       imageToConvert.pixels[ix] = red(c);
-//       imageToConvert.pixels[ix + 1] = green(c)
-//       imageToConvert.pixels[ix + 2] = blue(c);
-//     }
-//   }
-//   imageToConvert.updatePixels();
-//   return imageToConvert;
-// }
-
-function convertImageToTargets(img){
+// samples from an image, remapping greyscale brightness to a yellow spectrum
+function convertImageToTargets(img, scaleFactor = 1){
   let targets = [];
-  img.loadPixels(); // load the pixels (DON'T SKIP THIS STEP)
+  img.resize(img.width*scaleFactor, 0); // resize the image and load the pixels
+  img.loadPixels();
+  let xOff = width/2 - img.width/2;
+  let yOff = height/2 - img.height/2;
   for(let y = 0; y < img.height; y+= sampleEvery){
     for(let x = 0; x < img.width; x+= sampleEvery){
         let ix = (x + y*img.width)*4;
@@ -131,22 +131,13 @@ function convertImageToTargets(img){
         let brightness = int((img.pixels[ix] + img.pixels[ix+1] + img.pixels[ix+2])/3); // get the greyscale brightness
         let cVal = map(brightness, 0, 255, 0, 1); // scale it between 0 and 1
         let c = lerpColor(darkestYellow, yellow, cVal); // lerp colour: yellow to dark yellow
-        targets.push({'c': c, 'x': x, 'y': y}); // capture the x y position and the colour value
+        targets.push({'c': c, 'x': x + xOff, 'y': y + yOff}); // capture the x y position and the colour value
       }
   }
   return targets
 }
 
+function easeInOutQuad(x){
+  return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+}
 
-// function convertImageToSwarm(imageToConvert, sampleEvery){
-//   fireflies = [];
-//   for(let y = 0; y < imageToConvert.height; y+= sampleEvery){
-//     for(let x = 0; x < imageToConvert.width; x+= sampleEvery){
-//       let ix = (x + y*imageToConvert.width)*4;
-//       if(imageToConvert.pixels[ix+3] === 0) continue; // ignore transparent values
-//       let c = color(imageToConvert.pixels[ix], imageToConvert.pixels[ix+1], imageToConvert.pixels[ix+2]);
-//       fireflies.push(new FireFly(x,y,c));
-//     }
-//   }
-//   return new Swarm(fireflies);
-// }

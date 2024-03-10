@@ -1,5 +1,5 @@
 class FireFly{
-    constructor(targetX, targetY, c){
+    constructor(targetX, targetY, targetC){
         this.p = createVector(0,0);
         this.start = createVector(0,0);
         this.offset = random(TWO_PI);
@@ -7,16 +7,18 @@ class FireFly{
         this.offset = random(TWO_PI);
         this.nXOff = random(1000);
         this.nYOff = random(1000);
-        this.targetc = c;
-        this.c = color(255, 255, 0); // default is bright yellow
+        this.targetc = targetC;
+        this.c = yellow;
         this.startS = random(1,sampleEvery);
         this.s = this.startS;
         this.refreshBoundingBoxes();
+        
     }
 
-    remap(x,y, c){
+    setTarget(x, y, c){
         this.targetc = c;
         this.target.set(x,y);
+        
     }
 
     refreshBoundingBoxes(){
@@ -42,15 +44,11 @@ class FireFly{
         this.p.set(nx, ny);
 
         // set colour to target colour
-        this.c = lerpColor(color(255, 255, 0), this.targetc, convergeTracker);
+        this.c = lerpColor(yellow, this.targetc, convergeTracker);
     }
 
     show(){
         fill(this.c);
         circle(this.p.x, this.p.y, this.s);
-       
-        
-        
-        
     }
 }
