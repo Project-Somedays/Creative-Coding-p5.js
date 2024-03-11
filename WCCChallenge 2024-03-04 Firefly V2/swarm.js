@@ -1,18 +1,17 @@
 class Swarm{
     constructor(startArrayOfTargets, nextArrayofTargets){
-        this.swarm = [];
+        this.swarm = new Array(maxTargets);
         for(let i = 0; i < maxTargets; i++){
-            this.swarm.push(new FireFly(random(0.1*width, 0.9*width), random(0.1*height, 0.9*height), yellow));
+            this.swarm[i] = new FireFly(random(width), random(height), yellow);
         }
         this.bufferSwarm = [...this.swarm]; // must make a copy to keep the noise offsets
-        this.swarm = this.mapTargetsToFireflies(startArrayOfTargets, this.swarm);
-        console.log(this.swarm);
+        this.swarm = [...this.mapTargetsToFireflies(startArrayOfTargets, this.swarm)];
         this.bufferSwarm = this.mapTargetsToFireflies(nextArrayofTargets, this.bufferSwarm);
     }
 
     update(){
-        for(let ff of this.swarm){
-            ff.update();
+        for(let i = 0; i < maxTargets; i++){
+            this.swarm[i].update(this.bufferSwarm[i].startTarget);
         }
     }
     

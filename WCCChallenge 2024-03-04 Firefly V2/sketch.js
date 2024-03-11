@@ -15,7 +15,7 @@ Quad easing function keeps the lerp looking fluid
 */
 
 // control variables
-const swarmProgressRate = 0.01; // how much should they fly around
+const swarmProgressRate = 0.003; // how much should they fly around
 const framesPerCycle = 300; // frames between one image and the next
 let globOffset = 0; // current 1D Perlin Noise input
 
@@ -28,6 +28,8 @@ let carousel; // for setting up a specific order of the images
 let cIx; // carousel index
 let scaleFactor; // window size responsiveness
 let maxTargets; // how big is the biggest array of targets?
+const faceSize = 0.8;
+const detailLevel = 100;
 
 // lerping function and tracking
 // const easeInOutQuad = (x) => {x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2};
@@ -37,6 +39,7 @@ let easingX = 0; // easing input
 // global sequence tracking
 let currentFrame = 0;
 let firstCycle = true;
+let transitionTracker = 0;
 
 // firefly biz 
 let swarm;
@@ -63,8 +66,8 @@ function setup() {
   pixelDensity(1);
   
   // all images are the same height (1080px) by design
-  scaleFactor = 0.8*height/1080;
-  sampleEvery = int(height/100); //also set the size of the fireflies
+  scaleFactor = faceSize*height/1080;
+  sampleEvery = int(height/detailLevel); //also set the size of the fireflies
 
   // setting colour values
   yellow = color(255, 255, 0);
@@ -72,7 +75,7 @@ function setup() {
   transparent = color(255, 255, 0, 0);
 
   // the neighbourhood determines the default size of the bounding box for each firefly
-  neighbourhood = 0.3*max(width, height);     
+  neighbourhood = 0.8*max(width, height);     
   
   // convert all the images to arrays of targets
   carousel = [imgShepherd, imgReynolds, imgJayne, imgKaylee, imgZoe, imgWash, imgSummer, imgSimon, imgInara].map((each) => convertImageToTargets(each, scaleFactor));
@@ -81,6 +84,7 @@ function setup() {
   
   // make a swarm
   swarm = new Swarm(carousel[0], carousel[1]);
+  console.log(swarm);
   cIx = 1;    
 }
 
@@ -94,8 +98,13 @@ function draw() {
   if(currentFrame < framesPerCycle/2){
     easingX += 2/framesPerCycle;
   } else {
+    transitionTracker += 2/framesPerCycle; // in the second half of the cycle, transition from one target to the next
+    // swarm.switchTargets();
     easingX -= 2/framesPerCycle;
   }
+
+  
+
 
   // convergeTracker = 0.5*(sin(a-HALF_PI) + 1); // sine easing function
   convergeTracker = easeInOutQuad(easingX);
@@ -105,17 +114,32 @@ function draw() {
  
   // MOVE ON TO THE NEXT IMAGE
   if(currentFrame === 0 && !firstCycle){
-    easingX = 0; // reset a
+    transitionTracker = 0;
+    easingX = 0;
     cIx = (cIx + 1)%carousel.length; // loop the images
     swarm.cycle(carousel[cIx]) // remap
-    console.log(`castIndex: ${cIx}`);
+    // console.log(`castIndex: ${cIx}`);
+    
   }
+
+  textSize(20);
+  fill(0);
+  rect(0.4*width,0.4*height, 0.4*width, 0.2*height);
+  fill(255);
+  text(currentFrame,width/2, height/2);
+  text(easingX,width/2, height/2 + 20);
+  text(transitionTracker,width/2, height/2 + 40);
+  text(convergeTracker,width/2, height/2 + 60);
+  // text(swarm[0].target, width/2, height/2 + 80);
   
   // flashCycle += flashCycleRate;
   firstCycle = false;
   globOffset += swarmProgressRate;
   
 }
+
+
+
 
 // samples from an image, remapping greyscale brightness to a yellow spectrum
 function convertImageToTargets(img, scaleFactor = 1){

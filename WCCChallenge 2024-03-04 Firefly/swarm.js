@@ -6,7 +6,7 @@ class Swarm{
         }
         this.bufferSwarm = [...this.swarm]; // must make a copy to keep the noise offsets
         this.swarm = this.mapTargetsToFireflies(startArrayOfTargets, this.swarm);
-        console.log(this.swarm);
+        // console.log(this.swarm);
         this.bufferSwarm = this.mapTargetsToFireflies(nextArrayofTargets, this.bufferSwarm);
     }
 

@@ -16,9 +16,15 @@ Quad easing function keeps the lerp looking fluid
 
 // control variables
 const swarmProgressRate = 0.01; // how much should they fly around
-const framesPerCycle = 300; // frames between one image and the next
+const framesPerCycle = 240; // frames between one image and the next
 let globOffset = 0; // current 1D Perlin Noise input
+const faceSize = 0.8;
+const detailLevel = 120;
 
+// capture bix
+let capture;
+const canvasID = 'canvas'
+let captureFrames;
 
 // images and sampling settings
 let sampleEvery;
@@ -57,14 +63,14 @@ function preload(){
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, P2D);
+  let canvas = createCanvas(1920, 1080, P2D);
   noStroke();
-  frameRate(30);
-  pixelDensity(1);
   
+  pixelDensity(1);
+ 
   // all images are the same height (1080px) by design
-  scaleFactor = 0.8*height/1080;
-  sampleEvery = int(height/100); //also set the size of the fireflies
+  scaleFactor = faceSize*height/1080;
+  sampleEvery = int(height/detailLevel); //also set the size of the fireflies
 
   // setting colour values
   yellow = color(255, 255, 0);
@@ -79,6 +85,18 @@ function setup() {
   carouselLengths = carousel.map(e => e.length)
   maxTargets = max(carouselLengths); // sets the size of the array
   
+  
+  // setting up the capture
+  canvas.id(canvasID);
+  capture = new CCapture({
+  format : 'png',
+  name : 'capture'
+  });
+  
+  captureFrames =  480;//carousel.length*framesPerCycle;
+  
+  console.log(captureFrames);
+  
   // make a swarm
   swarm = new Swarm(carousel[0], carousel[1]);
   cIx = 1;    
@@ -86,11 +104,27 @@ function setup() {
 
 function draw() {
   background(0);
+  
+  // capture biz
+  // if(frameCount === 480){
+  //   capture.start();
+  //   console.log("Starting capture");
+  // } 
+
+  // if(frameCount > 480+captureFrames){
+	// 	noLoop();
+	// 	capture.stop()
+	// 	capture.save();
+	// 	console.log("End of animation! Saving now...")
+	// 	return;
+	// }
+
+
   image(imgSerenity, 0,0, imgSerenity.width*(height/1080), imgSerenity.height*(height/1080));
 
   currentFrame = frameCount % framesPerCycle; // tracker for how far we are through the cycle
   
-  // 
+  
   if(currentFrame < framesPerCycle/2){
     easingX += 2/framesPerCycle;
   } else {
@@ -115,6 +149,7 @@ function draw() {
   firstCycle = false;
   globOffset += swarmProgressRate;
   
+  // capture.capture(document.getElementById(canvasID));
 }
 
 // samples from an image, remapping greyscale brightness to a yellow spectrum

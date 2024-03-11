@@ -131,6 +131,7 @@ function draw() {
 	currentIndex = (currentIndex + 1)%span;
 	globA += 2*TWO_PI/span; // in one loop, it should twist a whole number of times
   capture.capture(document.getElementById(canvasID));
+  console.log("image captured");
 }
 
 function getLoopValues(minVal, maxVal){
