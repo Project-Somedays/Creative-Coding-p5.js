@@ -132,7 +132,7 @@ function draw() {
   }
 
   // convergeTracker = 0.5*(sin(a-HALF_PI) + 1); // sine easing function
-  convergeTracker = easeInOutQuad(easingX);
+  convergeTracker = easeInOutQuint(easingX);
   
   swarm.update();
   swarm.show();
@@ -175,4 +175,8 @@ function convertImageToTargets(img, scaleFactor = 1){
 function easeInOutQuad(x){
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 }
+
+function easeInOutQuint(x){
+  return x < 0.5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2;
+  }
 
