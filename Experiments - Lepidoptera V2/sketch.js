@@ -9,8 +9,9 @@ Where they overlap:
   2. Draw a line between their centres
 
 Opportunities/TODO's:
-  - Instead of drawing a line between their centres, draw the chord of points of intersection
   - Lock down escapees hahah 
+  - Clean up drawComparison
+  - Set variables with sliders etc
 
 Updates:
 2024-03-14
@@ -48,7 +49,6 @@ let viewMode = {
 }
 
 let chosenViewMode;
-
 let randPalette;
 let walls = []
 let r, D; // radius of the mover
@@ -57,7 +57,6 @@ let opacity;
 
 let DEBUGMODE = false;
 let debugPt, povPt;
-let persistenceDebugPoint;
 
 let movers = [];
 let n; // how many movers?
