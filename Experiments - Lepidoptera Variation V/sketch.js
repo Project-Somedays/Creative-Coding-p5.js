@@ -35,7 +35,7 @@ let interactionModes = {
 }
 let chosenInteractionMode;
 
-let DEBUGMODE = true;
+let DEBUGMODE = false;
 
 // COLOURS
 let randPalette;
@@ -44,7 +44,7 @@ let randPalette;
 let rows;
 let movers = [];
 let n;
-let r;
+let r, D;
 let walls = [];
 let fMax = 0.25;
 let overlap = 1;
@@ -63,23 +63,31 @@ rows = 4;
 debugLayer = createGraphics(width,height/rows);
 povLayer = createGraphics(width, height/rows);
 
+// VISUALS
+chosenInteractionMode = interactionModes.CHORDMODE;
+opacity = int(random(25,75));
+randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
+console.log(randPalette);
+
 // MOVERS
 n = int(random(30, 60));
-r = random(0.01*width, 0.05*width);
+r = random(0.03*width, 0.1*width);
 D = 2*r;
 generateMovers();
 generateWalls();
 
-// VISUALS
-chosenInteractionMode = interactionModes.CHORDMODE;
-opacity = 255;
-randPalette = random(palettes).map(e => hexToRGBA(e, opacity));
+
 
 }
 
 
+
 function draw(){
+  // background(0);
+  // fill(randPalette[0]);
+  // circle(width/2, height/2, 300);
   debugLayer.background(0);
+  debugLayer.noFill();
   for(let m of movers){
     for(let w of walls){
       bounce(w, m);
@@ -88,10 +96,31 @@ function draw(){
     if(DEBUGMODE) m.show(debugLayer);
   }
   handleMoverInteraction()
+  showOverlap(povLayer, chosenInteractionMode);
+  if(!DEBUGMODE) {
+    imageMode(CENTER);
+  
+    push();
+    translate(width/2, 0.5*height/rows);
+    image(povLayer,0,0);
+    translate(0,height/rows);
+    scale(1,-1); // reflect vertically
+    image(povLayer,0,0);
+    translate(0,-height/rows);
+    scale(-1,1);
+    image(povLayer,0,0);
+    translate(0,-height/rows);
+    scale(1,-1);
+    image(povLayer,0,0);
+  
+    pop();
+  return;
+  } 
+  imageMode(CORNER);
   showOverlap(debugLayer, chosenInteractionMode);
+  showWalls(debugLayer);
   image(debugLayer,0,0);
-
-
+  
 }
 
 
@@ -105,7 +134,7 @@ function generateWalls(){
 
 function generateMovers(){
   for(let i = 0; i < n; i++){
-    movers.push(new Mover(random(width), random(height)));
+    movers.push(new Mover(random(width - r), random(height/rows - r)));
   }
 }
 
@@ -219,18 +248,19 @@ function bounce(wall, mover){
 }
 
 
-function hexToRGBA(hex, opacity) {
-  // Extract RGB components from hex value
-  let r = parseInt(hex.substring(1, 3), 16);
-  let g = parseInt(hex.substring(3, 5), 16);
-  let b = parseInt(hex.substring(5, 7), 16);
+function hexToRgbWithOpacity(hex, opacity) {
+  // Remove the hash symbol if it's present
+  hex = hex.replace('#', '');
+
+  // Parse the hex color into its RGB components
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
   
-  // Ensure opacity is within valid range
-  opacity = constrain(opacity, 0, 255);
-  
-  // Return RGBA color string
-  return color(r,g,b,opacity);
+  // Return the RGB color with the specified opacity
+  return color(r, g, b, opacity);
 }
+
 
 
 function keyPressed(){
