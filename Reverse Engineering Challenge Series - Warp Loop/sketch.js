@@ -25,8 +25,8 @@ function setup() {
   transitionLayer.background(0,0,0,20);
   drawLayer.background(0);
   centrePoint = createVector(width/2, height/2);
-  R = random(width/6, width/3);
-  r = random(0.5*R, 1.5*R);
+  R = random(width/4, width*0.4);
+  r = random(0.5*R, 2.5*R);
   drawLayer.noFill();
   drawLayer.stroke(255);
   xOff = random(1000);
