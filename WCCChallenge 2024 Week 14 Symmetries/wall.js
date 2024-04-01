@@ -14,3 +14,20 @@ class Wall{
       // text(round(this.wallLength,1), this.midPt.x, this.midPt.y)
     }
   }
+
+
+function generateWalls(){
+  walls = [];
+  walls.push(new Wall(0,0,w,0));
+  walls.push(new Wall(w,0,w,w));
+  walls.push(new Wall(w,w,0,w));
+  walls.push(new Wall(0,w,0,0));
+}
+
+
+function showWalls(layer){
+  layer.stroke(255);
+  for(let w of walls){
+    w.show(layer);
+  }
+}

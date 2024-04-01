@@ -12,9 +12,9 @@ Where they overlap:
   2. Draw a line between the points of intersection OR a line between their centres
 
 Aiming for multiple symmetries: movers bounce around in a box which is then flipped 4 ways to get 2 lines of symmetry
-Then THAT whole pattern is rotated about for a 3rd rotational symmetry.
+Then THAT whole pattern is rotated about for a 3rd,rotational symmetry.
 
-Zoom in and out to keep the square centre of screen =)
+Possible to toggle zoom in and out mode =)  
 */
 
 let palettes = [
@@ -35,13 +35,14 @@ let palettes = [
   ['#eac435', '#345995', '#03cea4', '#fb4d3d', '#ca1551']
 ];
 
-let bg = "#171412";
+let bg = "#0D1126"; // chinese black
 
 let interactionModes = {
   CENTREMODE : Symbol("CENTREMODE"),
   CHORDMODE: Symbol("CHORDMODE")
 }
 let chosenInteractionMode;
+let possibleModes;
 
 let DEBUGMODE = false;
 
@@ -64,15 +65,14 @@ let secondaryLayer;;
 let tertiaryLayer;
 let debugLayer;
 let canvas = null;
-
-
-
-
+let globalScale = 1;
+let rotRate = 300;
+let rotateAndZoomMode = true;
 
 function setup(){
 canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
 // createCanvas(1080, 1920);
-
+possibleModes = [interactionModes.CENTREMODE, interactionModes.CHORDMODE];
 background(bg);
 
 
@@ -85,25 +85,38 @@ debugLayer = createGraphics(width, height);
 w = primaryLayer.width; // given it's square
 
 // VISUALS
-chosenInteractionMode = interactionModes.CHORDMODE;
-opacity = int(random(25,75));
+chosenInteractionMode = random(possibleModes);
+opacity = random(1) < 0.5 ? int(random(30,80)) : 255; // sometimes full opacity, sometimes not
 randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
 // console.log(randPalette);
 
 // MOVERS
 n = int(random(20, 40));
+// n = 20;
+// r = 100;
 r = random(0.025*w, 0.2*w);
 D = 2*r;
 generateMovers();
 generateWalls();
 
-imageMode(CENTER);
 }
 
 
 
 function draw(){
+  background(bg);
+  secondaryLayer.fill(bg);
+  secondaryLayer.rect(0,0,w,w);
+  secondaryLayer.noStroke();
+  tertiaryLayer.fill(bg);
+  tertiaryLayer.rect(0,0,tertiaryLayer.width,tertiaryLayer.width);
+  
+  
+  if(rotateAndZoomMode){
+    globalScale = 1/sqrt(2) + (1 + sin(frameCount/rotRate));
+  }
   // povLayer.background(0);
+  
   // fill(randPalette[0]);
   // circle(width/2, height/2, 300);
   debugLayer.background(0);
@@ -123,7 +136,7 @@ function draw(){
     //TL
     secondaryLayer.imageMode(CENTER);
     secondaryLayer.push();
-    secondaryLayer.translate(w/4, w/4);
+    secondaryLayer.translate(0.25*w, 0.25*w);
     secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
     secondaryLayer.pop();
 
@@ -149,80 +162,42 @@ function draw(){
     secondaryLayer.pop();  
 
     // Drawing to tertiary layer
-    
     tertiaryLayer.imageMode(CENTER);
     tertiaryLayer.push();
-    tertiaryLayer.translate(width/2, height/2);
-    tertiaryLayer.image(secondaryLayer, 0, 0, w, w);
+    tertiaryLayer.translate(tertiaryLayer.width/2, tertiaryLayer.height/2);
+    tertiaryLayer.image(secondaryLayer, -w/2, -w/2);
     tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, 0, 0, w, w);
+    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
     tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, 0, 0, w, w);
+    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
     tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, 0, 0, w, w);
+    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
     tertiaryLayer.pop();
   
-  push();
-  translate(width/2, height/2);
-  scale(2, 2)
-  image(tertiaryLayer, 0, 0,width, width);
-  pop();
+    // finally drawing to the canvas
+
+    imageMode(CENTER);
+    push();
+    translate(width/2, height/2);
+    if(rotateAndZoomMode){
+      rotate(frameCount / rotRate);
+      scale(globalScale);
+    }
+    // image(secondaryLayer, 0, 0);
+    image(tertiaryLayer,0,0, w, w);
+    pop();
   
   return;
   }
   // imageMode(CORNER);
   drawOverlap(debugLayer, chosenInteractionMode);
   showWalls(debugLayer);
+  
   image(debugLayer,0,0);
+
   
 }
 
-
-function generateWalls(){
-  walls = [];
-  walls.push(new Wall(0,0,w,0));
-  walls.push(new Wall(w,0,w,w));
-  walls.push(new Wall(w,w,0,w));
-  walls.push(new Wall(0,w,0,0));
-}
-
-function generateMovers(){
-  for(let i = 0; i < n; i++){
-    movers.push(new Mover(random(w), random(w)));
-  }
-}
-
-function drawArrow(layer, x,y, heading, mag){
-  layer.push();
-  layer.translate(x,y);
-  layer.rotate(heading);
-  layer.line(0, 0, mag, 0);
-  layer.line(mag, 0, mag - mag/4, -mag/4);
-  layer.line(mag, 0, mag - mag/4, mag/4);
-  layer.pop();
-}
-
-function showWalls(layer){
-  layer.stroke(255);
-  for(let w of walls){
-    w.show(layer);
-  }
-}
-
-function handleMoverInteraction(){
-  for(let i = 0; i < movers.length; i++){
-    for(let j = i; j < movers.length; j++){
-      if(i === j) continue;
-      let d = p5.Vector.dist(movers[i].p, movers[j].p)
-      if(d < 2*r){
-        let fMag = map(d, 0, 2*r, fMax, 0);
-        let f = p5.Vector.sub(movers[i].p, movers[j].p);
-        movers[i].applyForce(f.setMag(fMag)); // applyForce
-        movers[j].applyForce(f.mult(-1)); // apply the reverse to j
-      }
-    }
-  }
-}
 
 function drawOverlap(layer, mode){   
   for(let i = 0; i < movers.length; i++){
@@ -322,6 +297,10 @@ function keyPressed(){
     DEBUGMODE = !DEBUGMODE;
     console.log(`Debug Mode: ${DEBUGMODE}`);
     background(0);
+  }
+
+  if(key === ' '){
+    rotateAndZoomMode = !rotateAndZoomMode;
   }
   
 }
