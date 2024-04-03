@@ -27,9 +27,10 @@ class Mover{
   }
 
 
-  function generateMovers(){
+  function generateMovers(wWidth, moverWidth){
     for(let i = 0; i < n; i++){
-      movers.push(new Mover(random(w), random(w)));
+      // movers.push(new Mover(random(moverWidth, wWidth - moverWidth), random(moverWidth, wWidth - moverWidth)));
+      movers.push(new Mover(random(wWidth), random(wWidth)));
     }
   }
   

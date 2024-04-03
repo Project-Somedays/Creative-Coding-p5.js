@@ -43,7 +43,9 @@ let interactionModes = {
 }
 let chosenInteractionMode;
 let possibleModes;
-
+let cycleFrames = 300;
+let substeps = 3;
+let REFLECT_THEN_ROTATE = true;
 let DEBUGMODE = false;
 
 // COLOURS
@@ -66,135 +68,243 @@ let tertiaryLayer;
 let debugLayer;
 let canvas = null;
 let globalScale = 1;
-let rotRate = 300;
+let rotRate;
 let rotateAndZoomMode = true;
 
 function setup(){
-canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
-// createCanvas(1080, 1920);
-possibleModes = [interactionModes.CENTREMODE, interactionModes.CHORDMODE];
-background(bg);
+  // canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
+  createCanvas(1080, 1080);
+  frameRate(30);
+  possibleModes = [interactionModes.CENTREMODE, interactionModes.CHORDMODE];
+  background(bg);
+  rotRate = TWO_PI/cycleFrames;
 
+  // LAYERS
 
-// LAYERS
+  tertiaryLayer = createGraphics(2*width,2*height); // the final image for zooming and rotating
+  secondaryLayer = createGraphics(width, height);
+  secondaryLayer.noStroke();
+  primaryLayer = createGraphics(width, height);
+  debugLayer = createGraphics(width, height);
+  w = primaryLayer.width; // given it's square
 
-tertiaryLayer = createGraphics(2*width,2*height); // the final image for zooming and rotating
-secondaryLayer = createGraphics(width, height);
-primaryLayer = createGraphics(width, height);
-debugLayer = createGraphics(width, height);
-w = primaryLayer.width; // given it's square
+  // VISUALS
+  chosenInteractionMode = interactionModes.CHORDMODE;//random(possibleModes);
+  opacity = random(1) < 0.66 ? int(random(50,100)) : 255; // sometimes full opacity, sometimes not
+  randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
+  // console.log(randPalette);
 
-// VISUALS
-chosenInteractionMode = random(possibleModes);
-opacity = random(1) < 0.5 ? int(random(30,80)) : 255; // sometimes full opacity, sometimes not
-randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
-// console.log(randPalette);
-
-// MOVERS
-n = int(random(20, 40));
-// n = 20;
-// r = 100;
-r = random(0.025*w, 0.2*w);
-D = 2*r;
-generateMovers();
-generateWalls();
-
+  // MOVERS
+  n = int(random(20, 40));
+  r = random(0.025*w, 0.2*w);
+  D = 2*r;
+  generateMovers(w, r);
+  generateWalls(w);
+  imageMode(CENTER);
 }
 
 
 
 function draw(){
+  // draw in the backgrounds each frame
   background(bg);
+  secondaryLayer.strokeWeight(5);
+  // secondaryLayer.stroke(255);
   secondaryLayer.fill(bg);
-  secondaryLayer.rect(0,0,w,w);
-  secondaryLayer.noStroke();
+  secondaryLayer.rect(0,0,secondaryLayer.width,secondaryLayer.height);
   tertiaryLayer.fill(bg);
   tertiaryLayer.rect(0,0,tertiaryLayer.width,tertiaryLayer.width);
-  
-  
-  if(rotateAndZoomMode){
-    globalScale = 1/sqrt(2) + (1 + sin(frameCount/rotRate));
-  }
-  // povLayer.background(0);
-  
-  // fill(randPalette[0]);
-  // circle(width/2, height/2, 300);
-  debugLayer.background(0);
+  debugLayer.fill(bg)
+  // debugLayer.noStroke();
+  debugLayer.rect(0,0,debugLayer.width, debugLayer.height);
   debugLayer.noFill();
-  for(let m of movers){
-    for(let w of walls){
-      bounce(w, m);
-    }
-    m.update();
-    if(DEBUGMODE) m.show(debugLayer);
+  debugLayer.stroke(255);
+  
+  // update global zoom and rotation
+  if(rotateAndZoomMode){
+    globalScale = 1/sqrt(2) + (1 + sin(frameCount * rotRate + HALF_PI + PI));
   }
-  handleMoverInteraction()
-  drawOverlap(primaryLayer, chosenInteractionMode);
   
+
   
-  if(!DEBUGMODE) {
-    //TL
-    secondaryLayer.imageMode(CENTER);
-    secondaryLayer.push();
-    secondaryLayer.translate(0.25*w, 0.25*w);
-    secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-    secondaryLayer.pop();
 
-    // TR
-    secondaryLayer.push();
-    secondaryLayer.translate(0.75*w,0.25*w);
-    secondaryLayer.scale(-1, 1)
-    secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-    secondaryLayer.pop();
+  // in case we need to speed things up, allow multiple passes per drawframe
+  for(let i = 0; i < substeps; i++){
+    for(let m of movers){
+      for(let w of walls){
+        bounce(w, m); // bounce off the walls
+      }
+      m.update(); // update position
+      if(DEBUGMODE) m.show(debugLayer);
+    }
+    handleMoverInteraction()
+    drawOverlap(primaryLayer, chosenInteractionMode);
+  }
 
-    // BR
-    secondaryLayer.push();
-    secondaryLayer.translate(0.75*w,0.75*w);
-    secondaryLayer.scale(-1, -1)
-    secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-    secondaryLayer.pop();
+
+    // draw the biz
+    // drawReflections(secondaryLayer, primaryLayer);
+    // drawRotations(tertiaryLayer, secondaryLayer);
+    // drawRotations(secondaryLayer, primaryLayer);
+    drawReflections(secondaryLayer,primaryLayer);
+    drawRotations(tertiaryLayer, secondaryLayer);
     
-    // BL
-    secondaryLayer.push();
-    secondaryLayer.translate(0.25*w,0.75*w);
-    secondaryLayer.scale(1, -1)
-    secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-    secondaryLayer.pop();  
+    // imageMode(CENTER);
 
-    // Drawing to tertiary layer
-    tertiaryLayer.imageMode(CENTER);
-    tertiaryLayer.push();
-    tertiaryLayer.translate(tertiaryLayer.width/2, tertiaryLayer.height/2);
-    tertiaryLayer.image(secondaryLayer, -w/2, -w/2);
-    tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
-    tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
-    tertiaryLayer.rotate(HALF_PI); 
-    tertiaryLayer.image(secondaryLayer, -w/2, -w/2, w, w);
-    tertiaryLayer.pop();
   
-    // finally drawing to the canvas
-
-    imageMode(CENTER);
-    push();
-    translate(width/2, height/2);
-    if(rotateAndZoomMode){
-      rotate(frameCount / rotRate);
-      scale(globalScale);
+    if(DEBUGMODE){
+      image(debugLayer, width/2, width/2, width, width);
+    } else {
+      // image(secondaryLayer, width/4, width/4, width, width);
+      image(tertiaryLayer, width/2, width/2, width, width);
     }
-    // image(secondaryLayer, 0, 0);
-    image(tertiaryLayer,0,0, w, w);
-    pop();
-  
-  return;
-  }
-  // imageMode(CORNER);
-  drawOverlap(debugLayer, chosenInteractionMode);
-  showWalls(debugLayer);
-  
-  image(debugLayer,0,0);
 
+
+    
+  
+  
+  
+  
+//   if(!DEBUGMODE) {
+
+//     if(REFLECT_THEN_ROTATE){
+
+//       drawReflections(secondaryLayer, primaryLayer);
+//       drawRotations(tertiaryLayer, secondaryLayer);
+//       imageMode(CENTER);
+//       image(primaryLayer,0,0);
+//     // //TL
+//     // secondaryLayer.imageMode(CENTER);
+//     // secondaryLayer.push();
+//     // secondaryLayer.translate(0.25*w, 0.25*w);
+//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
+//     // secondaryLayer.pop();
+
+//     // // TR
+//     // secondaryLayer.push();
+//     // secondaryLayer.translate(0.75*w,0.25*w);
+//     // secondaryLayer.scale(-1, 1)
+//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
+//     // secondaryLayer.pop();
+
+//     // // BR
+//     // secondaryLayer.push();
+//     // secondaryLayer.translate(0.75*w,0.75*w);
+//     // secondaryLayer.scale(-1, -1)
+//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
+//     // secondaryLayer.pop();
+    
+//     // // BL
+//     // secondaryLayer.push();
+//     // secondaryLayer.translate(0.25*w,0.75*w);
+//     // secondaryLayer.scale(1, -1)
+//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
+//     // secondaryLayer.pop();  
+
+//     // // Drawing to tertiary layer
+//     // tertiaryLayer.imageMode(CENTER);
+//     // tertiaryLayer.push();
+//     // tertiaryLayer.translate(tertiaryLayer.width/2, tertiaryLayer.height/2);
+//     // for(let i = 0; i < 4; i++){
+//     //   tertiaryLayer.image(secondaryLayer, -w/2, -w/2);
+//     //   tertiaryLayer.rotate(HALF_PI);      
+//     // }
+//     // tertiaryLayer.pop();
+    
+  
+//     // finally drawing to the canvas
+
+//     } else{
+//     secondaryLayer.push();
+//     secondaryLayer.translate(secondaryLayer.width/2, secondaryLayer.height/2);
+//     for(let i = 0; i < 4; i++){
+//       secondaryLayer.image(primaryLayer, -w/2, -w/2);
+//       secondaryLayer.rotate(HALF_PI);      
+//     }
+//     secondaryLayer.pop();
+
+//     // TL
+//     tertiaryLayer.imageMode(CENTER);
+//     tertiaryLayer.push();
+//     tertiaryLayer.translate(0.25*tertiaryLayer.width, 0.25*tertiaryLayer.width);
+//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
+//     tertiaryLayer.pop();
+
+//     // TR
+//     tertiaryLayer.push();
+//     tertiaryLayer.translate(0.75*tertiaryLayer.width,0.25*tertiaryLayer.width);
+//     tertiaryLayer.scale(-1, 1)
+//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2,tertiaryLayer.width/2);
+//     tertiaryLayer.pop();
+
+//     // BR
+//     tertiaryLayer.push();
+//     tertiaryLayer.translate(0.75*tertiaryLayer.width,0.75*tertiaryLayer.width);
+//     tertiaryLayer.scale(-1, -1)
+//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
+//     tertiaryLayer.pop();
+    
+//     // BL
+//     tertiaryLayer.push();
+//     tertiaryLayer.translate(0.25*tertiaryLayer.width,0.75*tertiaryLayer.width);
+//     tertiaryLayer.scale(1, -1)
+//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
+//     tertiaryLayer.pop();  
+
+//     }
+    
+//   //   imageMode(CENTER);
+//   //   push();
+//   //   translate(width/2, height/2);
+//   //   // if(rotateAndZoomMode){
+//   //   //   rotate(-frameCount * rotRate / 4);
+//   //   //   scale(globalScale);
+//   //   // }
+//   //   // image(secondaryLayer, 0, 0);
+//   //   image(tertiaryLayer,0,0, w, w);
+//   //   pop();
+
+//   //   } else {
+//   //   drawOverlap(debugLayer, chosenInteractionMode);
+//   //   showWalls(debugLayer);
+//   //   image(debugLayer,0,0);
+//   // }
+//   // imageMode(CORNER);
+  
+// }
+
+//   // if(frameCount%cycleFrames === 0){
+//   //   cycleSketch();
+//   // }
+ 
+}
+
+function drawRotations(targetLayer, layer2Copy){
+  for(let i = 0; i < 4; i++){
+    targetLayer.push();
+    targetLayer.translate(targetLayer.width/2, targetLayer.height/2);
+    targetLayer.rotate(i*HALF_PI);
+    targetLayer.image(layer2Copy, 0, 0, targetLayer.width/2, targetLayer.height/2);
+    targetLayer.pop();
+  }
+}
+
+function drawReflections(targetLayer, layer2Copy){
+  // const drawLayer = () => targetLayer.image(layer2Copy, -0.25*targetLayer.width, -0.25*targetLayer.width, targetLayer.width/2, targetLayer.width/2);
+  const reflections = [
+    {x: 1, y: 1}, // TL
+    {x: -1, y : 1}, // TR
+    {x: 1, y: -1}, // BR
+    {x:-1, y: -1}] // BL
+  for(let i = 0; i < 4; i++){
+    targetLayer.push();
+    targetLayer.translate(targetLayer.width/2, targetLayer.height/2);
+    targetLayer.scale(reflections[i].x, reflections[i].y);
+    // drawLayer();
+    targetLayer.image(layer2Copy, -0.5*targetLayer.width, -0.5*targetLayer.width, targetLayer.width/2, targetLayer.width/2);
+    targetLayer.pop();
+  }
+  
   
 }
 
@@ -305,7 +415,11 @@ function keyPressed(){
   
 }
 
-function mousePressed(){
+function cycleSketch(){
   movers = [];
   setup();
+}
+
+function mousePressed(){
+  cycleSketch();
 }
