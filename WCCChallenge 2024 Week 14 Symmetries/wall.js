@@ -16,12 +16,12 @@ class Wall{
   }
 
 
-function generateWalls(){
+function generateWalls(wWidth){
   walls = [];
-  walls.push(new Wall(0,0,w,0));
-  walls.push(new Wall(w,0,w,w));
-  walls.push(new Wall(w,w,0,w));
-  walls.push(new Wall(0,w,0,0));
+  walls.push(new Wall(0,0,wWidth,0));
+  walls.push(new Wall(wWidth,0,wWidth,wWidth));
+  walls.push(new Wall(wWidth,wWidth,0,wWidth));
+  walls.push(new Wall(0,wWidth,0,0));
 }
 
 

@@ -1,6 +1,6 @@
 /*
 Author: Project Somedays
-Date: 2024-04-01
+Date: 2024-04-01, refactored 2024-04-06
 Title: #WCCChallenge 2024 Week 14 - Symmetries
 
 Made for Sableraph's weekly creative coding challenges, reviewed Sundays on https://www.twitch.tv/sableraph
@@ -12,9 +12,17 @@ Where they overlap:
   2. Draw a line between the points of intersection OR a line between their centres
 
 Aiming for multiple symmetries: movers bounce around in a box which is then flipped 4 ways to get 2 lines of symmetry
-Then THAT whole pattern is rotated about for a 3rd,rotational symmetry.
+Then THAT whole pattern is rotated about for a 3rd,rotational symmetry. Or the other way around. Or flipped/rotated twice.
 
-Possible to toggle zoom in and out mode =)  
+To that end, I wanted to separate out movers from visuals. 
+Drawing to a primary graphic layer and then I draw copies of THAT to a secondary layer and bring it all together in a tertiary, final layer.
+Keep a lot of resolution up my sleeve that way.
+
+INTERACTIVITY:
+- Up and down arrows toggle through different modes, starting with random
+- Clicking runs setup again = new set of movers, colour palettes, opacity, possibly mode...
+- Press "r" to toggle rotation and zoom
+- Press "d" to show debug mode
 */
 
 let palettes = [
@@ -37,62 +45,112 @@ let palettes = [
 
 let bg = "#0D1126"; // chinese black
 
-let interactionModes = {
-  CENTREMODE : Symbol("CENTREMODE"),
-  CHORDMODE: Symbol("CHORDMODE")
+
+// Kind of making enums ---> OpenProcessing doesn't like object.freeze ?
+let interactions = {
+  CENTREMODE : "CENTREMODE",
+  CHORDMODE: "CHORDMODE"
 }
-let chosenInteractionMode;
-let possibleModes;
-let cycleFrames = 300;
-let substeps = 3;
-let REFLECT_THEN_ROTATE = true;
+
+let construction = {
+  REFLECTIONSROTATIONS: "Reflections -> Rotations",
+  ROTATIONSREFLECTIONS: "Rotations -> Reflections",
+  REFLECTIONSREFLECTIONS : "Reflections -> Reflections",
+  ROTATIONSROTATIONS : "Rotations -> Rotations",
+  RANDOMISED : "Randomised Reflections/Rotations"
+}
+
+// SELECTIONS
+let constructionCarousel;
+let constructionIndex = 0;
+let currentConstructionMode;
+let currentInteractionMode;
+let stepOne;
+let stepTwo;
+
+// TIMING
+const cycleFrames = 300;
+const substeps = 5; // how many times should we refresh per frame
+const rotRateMultiplier = 0.25; // how much should we rotate per zoom cycle. Hint: much more WILL make you sick.
+
 let DEBUGMODE = false;
+let showMetaData = true;
 
 // COLOURS
 let randPalette;
 
 // MOVERS AND CONSTRAINTS
-let rows;
 let movers = [];
 let n;
 let r, D;
 let walls = [];
-let fMax = 0.25;
-let overlap = 1;
+let fMax = 0.25; // max repulsive force
+let overlap = 1; // multiples of r close to the border
 let w;
 
-// LAYERS
-let primaryLayer;
-let secondaryLayer;;
-let tertiaryLayer;
+// LAYERS - two for comparisons
+let primaryLayerA;
+let secondaryLayerA;
+let tertiaryLayerA;
+let primaryLayerB;
+let secondaryLayerB;
+let tertiaryLayerB;
+
 let debugLayer;
 let canvas = null;
 let globalScale = 1;
 let rotRate;
 let rotateAndZoomMode = true;
 
+
 function setup(){
-  // canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
-  createCanvas(1080, 1080);
+  canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
+  // createCanvas(1920, 1080);
   frameRate(30);
-  possibleModes = [interactionModes.CENTREMODE, interactionModes.CHORDMODE];
+  pixelDensity(1);
+  
   background(bg);
-  rotRate = TWO_PI/cycleFrames;
+  rotRate = rotRateMultiplier*TWO_PI/cycleFrames;
 
-  // LAYERS
+  constructionCarousel = [
+    construction.RANDOMISED, 
+    construction.REFLECTIONSROTATIONS,
+    construction.ROTATIONSREFLECTIONS,
+    construction.REFLECTIONSREFLECTIONS,
+    construction.ROTATIONSROTATIONS
+  ]
 
-  tertiaryLayer = createGraphics(2*width,2*height); // the final image for zooming and rotating
-  secondaryLayer = createGraphics(width, height);
-  secondaryLayer.noStroke();
-  primaryLayer = createGraphics(width, height);
-  debugLayer = createGraphics(width, height);
-  w = primaryLayer.width; // given it's square
+  // if randomised, choose a random construction method from the other options with each refresh
+  if(constructionCarousel[constructionIndex] === construction.RANDOMISED){
+    currentConstructionMode = random(constructionCarousel.filter(m => m != construction.RANDOMISED));
+  } else{
+    currentConstructionMode = constructionCarousel[constructionIndex];
+  }
 
+  
+
+  // INIT LAYERS
+  debugLayer = createGraphics(height, height);
+
+  primaryLayerA = createGraphics(height, height);
+  secondaryLayerA = createGraphics(height, height);
+  tertiaryLayerA = createGraphics(2*height,2*height); // the final image for zooming and rotating
+  
+  primaryLayerB = createGraphics(height, height);
+  secondaryLayerB = createGraphics(height, height);
+  tertiaryLayerB = createGraphics(2*height,2*height); // the final image for zooming and rotating
+  
+  secondaryLayerA.noStroke();
+  secondaryLayerB.noStroke();
+  tertiaryLayerA.noStroke();
+  tertiaryLayerB.noStroke();
+  
   // VISUALS
-  chosenInteractionMode = interactionModes.CHORDMODE;//random(possibleModes);
-  opacity = random(1) < 0.66 ? int(random(50,100)) : 255; // sometimes full opacity, sometimes not
+  currentInteractionMode = random(1) < 0.33 ? interactions.CENTREMODE : interactions.CHORDMODE;  // in general, chordmode is more interesting
+  opacity = random(1) < 0.25 ? 255 : int(random(50,100)); // most of the time translucent, but every now and then BAM! Full colour.
   randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
-  // console.log(randPalette);
+
+  w = primaryLayerA.width; // given it's square
 
   // MOVERS
   n = int(random(20, 40));
@@ -101,6 +159,8 @@ function setup(){
   generateMovers(w, r);
   generateWalls(w);
   imageMode(CENTER);
+
+  if(showMetaData) logMetaData();
 }
 
 
@@ -108,26 +168,20 @@ function setup(){
 function draw(){
   // draw in the backgrounds each frame
   background(bg);
-  secondaryLayer.strokeWeight(5);
-  // secondaryLayer.stroke(255);
-  secondaryLayer.fill(bg);
-  secondaryLayer.rect(0,0,secondaryLayer.width,secondaryLayer.height);
-  tertiaryLayer.fill(bg);
-  tertiaryLayer.rect(0,0,tertiaryLayer.width,tertiaryLayer.width);
-  debugLayer.fill(bg)
-  // debugLayer.noStroke();
-  debugLayer.rect(0,0,debugLayer.width, debugLayer.height);
+
+  fillGraphicLayer(debugLayer);
+  fillGraphicLayer(secondaryLayerA);
+  fillGraphicLayer(tertiaryLayerA);
+  fillGraphicLayer(secondaryLayerB);
+  fillGraphicLayer(tertiaryLayerB);
   debugLayer.noFill();
   debugLayer.stroke(255);
   
   // update global zoom and rotation
   if(rotateAndZoomMode){
-    globalScale = 1/sqrt(2) + (1 + sin(frameCount * rotRate + HALF_PI + PI));
+    globalScale = 1/sqrt(2) + (1 + sin(frameCount * rotRate * (1/rotRateMultiplier) + HALF_PI + PI)); // start zoomed out and then zoom in
   }
   
-
-  
-
   // in case we need to speed things up, allow multiple passes per drawframe
   for(let i = 0; i < substeps; i++){
     for(let m of movers){
@@ -138,145 +192,59 @@ function draw(){
       if(DEBUGMODE) m.show(debugLayer);
     }
     handleMoverInteraction()
-    drawOverlap(primaryLayer, chosenInteractionMode);
+    drawOverlap(primaryLayerA, currentInteractionMode);
+    // drawOverlap(primaryLayerB, chosenInteractionMode);
   }
 
 
-    // draw the biz
-    // drawReflections(secondaryLayer, primaryLayer);
-    // drawRotations(tertiaryLayer, secondaryLayer);
-    // drawRotations(secondaryLayer, primaryLayer);
-    drawReflections(secondaryLayer,primaryLayer);
-    drawRotations(tertiaryLayer, secondaryLayer);
-    
-    // imageMode(CENTER);
+    // constructing the final image for each frame
+    switch(currentConstructionMode){
+      case construction.REFLECTIONSROTATIONS:
+        drawReflections(secondaryLayerA,primaryLayerA);
+        drawRotations(tertiaryLayerA, secondaryLayerA);
+        break;
+      case construction.ROTATIONSREFLECTIONS:
+        drawRotations(secondaryLayerA,primaryLayerA);
+        drawReflections(tertiaryLayerA, secondaryLayerA);
+        break;
+      case construction.REFLECTIONSREFLECTIONS:
+        drawReflections(secondaryLayerA,primaryLayerA);
+        drawReflections(tertiaryLayerA, secondaryLayerA);
+        break;
+      case construction.ROTATIONSROTATIONS:
+        drawRotations(secondaryLayerA, primaryLayerA);
+        drawRotations(tertiaryLayerA, secondaryLayerA);
+        break;
+    } 
 
+    
   
     if(DEBUGMODE){
       image(debugLayer, width/2, width/2, width, width);
     } else {
-      // image(secondaryLayer, width/4, width/4, width, width);
-      image(tertiaryLayer, width/2, width/2, width, width);
+      push();
+      translate(width/2, height/2);
+      if(rotateAndZoomMode){
+        scale(globalScale);
+        rotate(frameCount*rotRate);
+      }
+      image(tertiaryLayerA, 0, 0, width, width);
+      pop();
+      
+      // for comparison videos
+      // image(tertiaryLayerA, width*0.25, height/2, 0.95*width/2, 0.95*width/2);
+      // image(tertiaryLayerB, width*0.75, height/2, 0.95*width/2, 0.95*width/2);
     }
 
 
-    
-  
-  
-  
-  
-//   if(!DEBUGMODE) {
+    if(frameCount%cycleFrames === 0) cycleSketch();
+}
 
-//     if(REFLECT_THEN_ROTATE){
 
-//       drawReflections(secondaryLayer, primaryLayer);
-//       drawRotations(tertiaryLayer, secondaryLayer);
-//       imageMode(CENTER);
-//       image(primaryLayer,0,0);
-//     // //TL
-//     // secondaryLayer.imageMode(CENTER);
-//     // secondaryLayer.push();
-//     // secondaryLayer.translate(0.25*w, 0.25*w);
-//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-//     // secondaryLayer.pop();
-
-//     // // TR
-//     // secondaryLayer.push();
-//     // secondaryLayer.translate(0.75*w,0.25*w);
-//     // secondaryLayer.scale(-1, 1)
-//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-//     // secondaryLayer.pop();
-
-//     // // BR
-//     // secondaryLayer.push();
-//     // secondaryLayer.translate(0.75*w,0.75*w);
-//     // secondaryLayer.scale(-1, -1)
-//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-//     // secondaryLayer.pop();
-    
-//     // // BL
-//     // secondaryLayer.push();
-//     // secondaryLayer.translate(0.25*w,0.75*w);
-//     // secondaryLayer.scale(1, -1)
-//     // secondaryLayer.image(primaryLayer, 0, 0, w/2, w/2);
-//     // secondaryLayer.pop();  
-
-//     // // Drawing to tertiary layer
-//     // tertiaryLayer.imageMode(CENTER);
-//     // tertiaryLayer.push();
-//     // tertiaryLayer.translate(tertiaryLayer.width/2, tertiaryLayer.height/2);
-//     // for(let i = 0; i < 4; i++){
-//     //   tertiaryLayer.image(secondaryLayer, -w/2, -w/2);
-//     //   tertiaryLayer.rotate(HALF_PI);      
-//     // }
-//     // tertiaryLayer.pop();
-    
-  
-//     // finally drawing to the canvas
-
-//     } else{
-//     secondaryLayer.push();
-//     secondaryLayer.translate(secondaryLayer.width/2, secondaryLayer.height/2);
-//     for(let i = 0; i < 4; i++){
-//       secondaryLayer.image(primaryLayer, -w/2, -w/2);
-//       secondaryLayer.rotate(HALF_PI);      
-//     }
-//     secondaryLayer.pop();
-
-//     // TL
-//     tertiaryLayer.imageMode(CENTER);
-//     tertiaryLayer.push();
-//     tertiaryLayer.translate(0.25*tertiaryLayer.width, 0.25*tertiaryLayer.width);
-//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
-//     tertiaryLayer.pop();
-
-//     // TR
-//     tertiaryLayer.push();
-//     tertiaryLayer.translate(0.75*tertiaryLayer.width,0.25*tertiaryLayer.width);
-//     tertiaryLayer.scale(-1, 1)
-//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2,tertiaryLayer.width/2);
-//     tertiaryLayer.pop();
-
-//     // BR
-//     tertiaryLayer.push();
-//     tertiaryLayer.translate(0.75*tertiaryLayer.width,0.75*tertiaryLayer.width);
-//     tertiaryLayer.scale(-1, -1)
-//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
-//     tertiaryLayer.pop();
-    
-//     // BL
-//     tertiaryLayer.push();
-//     tertiaryLayer.translate(0.25*tertiaryLayer.width,0.75*tertiaryLayer.width);
-//     tertiaryLayer.scale(1, -1)
-//     tertiaryLayer.image(secondaryLayer, 0, 0, tertiaryLayer.width/2, tertiaryLayer.width/2);
-//     tertiaryLayer.pop();  
-
-//     }
-    
-//   //   imageMode(CENTER);
-//   //   push();
-//   //   translate(width/2, height/2);
-//   //   // if(rotateAndZoomMode){
-//   //   //   rotate(-frameCount * rotRate / 4);
-//   //   //   scale(globalScale);
-//   //   // }
-//   //   // image(secondaryLayer, 0, 0);
-//   //   image(tertiaryLayer,0,0, w, w);
-//   //   pop();
-
-//   //   } else {
-//   //   drawOverlap(debugLayer, chosenInteractionMode);
-//   //   showWalls(debugLayer);
-//   //   image(debugLayer,0,0);
-//   // }
-//   // imageMode(CORNER);
-  
-// }
-
-//   // if(frameCount%cycleFrames === 0){
-//   //   cycleSketch();
-//   // }
- 
+function fillGraphicLayer(layer){
+  layer.fill(bg);
+  layer.noStroke();
+  layer.rect(0,0, layer.width, layer.height);
 }
 
 function drawRotations(targetLayer, layer2Copy){
@@ -290,7 +258,6 @@ function drawRotations(targetLayer, layer2Copy){
 }
 
 function drawReflections(targetLayer, layer2Copy){
-  // const drawLayer = () => targetLayer.image(layer2Copy, -0.25*targetLayer.width, -0.25*targetLayer.width, targetLayer.width/2, targetLayer.width/2);
   const reflections = [
     {x: 1, y: 1}, // TL
     {x: -1, y : 1}, // TR
@@ -298,9 +265,8 @@ function drawReflections(targetLayer, layer2Copy){
     {x:-1, y: -1}] // BL
   for(let i = 0; i < 4; i++){
     targetLayer.push();
-    targetLayer.translate(targetLayer.width/2, targetLayer.height/2);
+    targetLayer.translate(targetLayer.width/2, targetLayer.height/2); 
     targetLayer.scale(reflections[i].x, reflections[i].y);
-    // drawLayer();
     targetLayer.image(layer2Copy, -0.5*targetLayer.width, -0.5*targetLayer.width, targetLayer.width/2, targetLayer.width/2);
     targetLayer.pop();
   }
@@ -316,15 +282,11 @@ function drawOverlap(layer, mode){
       let d = p5.Vector.dist(movers[i].p, movers[j].p)
       if(d < 2*r){
         layer.stroke(movers[i].c);
-        // if(DEBUGMODE){
-        //   strokeWeight(2);
-        //   layer.stroke(0,255,0,200);
-        // } 
         switch(mode){
-          case interactionModes.CENTREMODE:
+          case interactions.CENTREMODE:
             showOverlapLineBetweenCenters(layer, movers[i].p, movers[j].p);
             break;
-          case interactionModes.CHORDMODE:
+          case interactions.CHORDMODE:
             showOverlapChord(layer, movers[i].p, movers[j].p);
             break;
         }
@@ -347,7 +309,7 @@ function showOverlapChord(layer,posA, posB){
 	layer.push();
 	layer.translate(posA.x, posA.y);
 	layer.rotate(aSys); // for simplicity, rotate the system so that posB is always to the right of posA
-	// if(debugMode){
+	// if(DEBUGMODE){
 	// 	layer.line(0, 0, r*cos(a), r*sin(a));
 	// 	layer.line(0, 0, r*cos(a), r*sin(-a));
 	// }
@@ -405,14 +367,32 @@ function hexToRgbWithOpacity(hex, opacity) {
 function keyPressed(){
   if(key === 'd' || key === 'D'){
     DEBUGMODE = !DEBUGMODE;
-    console.log(`Debug Mode: ${DEBUGMODE}`);
     background(0);
   }
 
-  if(key === ' '){
+  if(key === "r" || key === "R"){
     rotateAndZoomMode = !rotateAndZoomMode;
   }
+
+  if(key === "t" || key === "T"){
+    showMetaData = !showMetaData;
+  }
+
+  if(keyCode === UP_ARROW){
+    constructionIndex = (constructionIndex + 1)%constructionCarousel.length;
+    cycleSketch();
+  }
+
+  if(keyCode === DOWN_ARROW){
+    constructionIndex = constructionIndex < 0 ? constructionCarousel.length - 1 : constructionIndex - 1;
+    
+    cycleSketch();
+  }
   
+}
+
+function logMetaData(){
+  console.log(`Interaction Method: ${currentInteractionMode}\nConstruction Method: ${constructionCarousel[constructionIndex]}\nn: ${n}\nr: ${r/width} of width\npalette: ${randPalette}\nopacity: ${opacity}`);
 }
 
 function cycleSketch(){
