@@ -1,6 +1,6 @@
 /*
 Author: Project Somedays
-Date: 2024-03-31
+Date: 2024-04-07
 Title: Reverse-Engineering Challenge Series
 
 @gandyworks did it live with a plotter, but I loved the effect: https://www.instagram.com/reel/C4v8j2NR41s/?igsh=ZnhheTVhNGVlM2M3
@@ -11,7 +11,7 @@ Substeps necessary to account for the increasing radius. I guess I could make th
 SPIRAL FUNCTIONS: https://www.wolframalpha.com/input?i=spiral
 Note: some spiral functions don't use the b parameter, but I'm trying to set it up so that I can choose a random one
 Doesn't hurt? Not sure how this *should* be done in javascript...
-basically what I want is a generic/abstract callable in python
+Basically what I want is a generic/abstract callable in python
 
 
 TODO/Opportunities:
@@ -42,7 +42,7 @@ let dl;
 let a;
 let chosenSpiral;
 let globalZoom;
-const opacity = 50; // set out of 100 for HSB mode
+const opacity = 100; // set out of 100 for HSB mode
 const substeps = 10; // could be effectively speed ramped? Something to try
 
 let axisNoiseProgressionRate
@@ -55,10 +55,13 @@ let profileGrowMode;
 let coloursMode;
 let colourOffsetMultiplier; // should colour changes lead or lag?
 
+let focalPt;
+
 function setup() {
-  createCanvas(1920, 1080);
+  createCanvas(1080, 1080);
   // createCanvas(windowWidth, windowHeight);
   background(0);
+  focalPt = createVector(0,0);
  
   // not all spirals work with the same parameters so I mucked around until I found ones that kind of worked
   spiralChoices = [{ 
@@ -91,12 +94,17 @@ function setup() {
     name: "Logarithmic Spiral: diverges over time"
   }];
   
-  chosenSpiral = random(spiralChoices);
+  chosenSpiral = {
+    fn: dopplerSpiral,
+    a: 10,
+    b: 0.5,
+    name: "Doppler Spiral: moves across the screen over time"
+  };//random(spiralChoices);
   console.log(chosenSpiral.name);
   
   // choosing modes
   colourOffsetMultiplier = random(0.8,1.2); // should the colour cycle lead or lag?
-  profileGrowMode = random() < 0.5;
+  profileGrowMode = false; //random() < 0.5;
   coloursMode = random() < 0.5;
   console.log(`Profile Grow Mode: ${profileGrowMode}`);
 
@@ -123,7 +131,7 @@ function setup() {
   
   // noise settings
   axisNoiseProgressionRate = random(100, 300);
-  rotationNoiseProgressionRate = random(100, 300);
+  rotationNoiseProgressionRate = random(50, 150 );
   noiseR = random(0,2); // if you want repeating noise, determines the roughness
   
   
@@ -146,12 +154,13 @@ function draw() {
     let xAxis = r*noise(xOff + frameCount/axisNoiseProgressionRate);
     let yAxis = r*noise(yOff + frameCount/axisNoiseProgressionRate);
     let rotA = map(noise(frameCount/rotationNoiseProgressionRate),0,1,-TWO_PI, TWO_PI);
-    dl.push();
-    let drawPoint = chosenSpiral.fn(chosenSpiral.a,chosenSpiral.b,t);//eightcurve(a,t);
-    dl.translate(dl.width/2 + drawPoint.x, dl.height/2 + drawPoint.y);
-    dl.rotate(t + rotA);
-    dl.rect(0,0,xAxis, yAxis);  
-    dl.pop();
+
+    focalPt = drawSpiralStep(dl, chosenSpiral, 0.5*dl.width, 0.5*dl.height, xAxis, yAxis, rotA, t);
+    // what is the difference between 
+    focalPt.add(p5.Vector.sub(centrePoint, focalPt));
+    // drawSpiralStep(dl, chosenSpiral, 0.55*dl.width, 0.55*dl.height, xAxis, yAxis, rotA, t + HALF_PI);
+
+    
     t += TWO_PI/cycleFrames;
     if(profileGrowMode){
       r += 1/(0.05*cycleFrames);
@@ -161,14 +170,24 @@ function draw() {
   
   // draw the drawlayer
   push();
-    translate(centrePoint.x, centrePoint.y)
-    scale(globalZoom);
-    rotate(-t);
+    translate(focalPt.x, focalPt.y)
+    // scale(globalZoom);
+    // rotate(-t*0.25);
     image(dl,0,0);
   pop();
   
   
-  globalZoom = 0.75 + 0.25*(1+cos(HALF_PI + t/zoomCycleRate));
+  // globalZoom = 0.75 + 0.25*(1+cos(HALF_PI + t/zoomCycleRate));
+}
+
+function drawSpiralStep(layer, spiralObject, cx, cy, xAxis, yAxis, rotA, t){
+  layer.push();
+  let drawPoint = spiralObject.fn(spiralObject.a,spiralObject.b, t, xAxis, yAxis, rotA);
+  layer.translate(cx + drawPoint.x, cy + drawPoint.y);
+  layer.rotate(t + rotA);
+  layer.rect(0,0,xAxis, yAxis);  
+  layer.pop();
+  return drawPoint;
 }
 
 
