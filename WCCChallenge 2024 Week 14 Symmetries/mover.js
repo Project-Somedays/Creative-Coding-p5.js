@@ -20,7 +20,7 @@ class Mover{
   
     show(layer){
       layer.circle(this.p.x, this.p.y, 2*r);
-      if (DEBUGMODE) drawArrow(layer, this.p.x, this.p.y, this.v.heading(), r*2);
+      drawArrow(layer, this.p.x, this.p.y, this.v.heading(), r*2);
     }
   
   

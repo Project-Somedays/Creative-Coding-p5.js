@@ -65,8 +65,7 @@ let constructionCarousel;
 let constructionIndex = 0;
 let currentConstructionMode;
 let currentInteractionMode;
-let stepOne;
-let stepTwo;
+
 
 // TIMING
 const cycleFrames = 300;
@@ -89,7 +88,7 @@ let overlap = 1; // multiples of r close to the border
 let w;
 
 // LAYERS - two for comparisons
-let primaryLayerA;
+let primaryLayer;
 let secondaryLayerA;
 let tertiaryLayerA;
 let primaryLayerB;
@@ -104,8 +103,8 @@ let rotateAndZoomMode = true;
 
 
 function setup(){
-  canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
-  // createCanvas(1920, 1080);
+  // canvas =  windowWidth > windowHeight ? createCanvas(windowHeight, windowHeight) : createCanvas(windowWidth, windowWidth);
+  createCanvas(1920, 1080);
   frameRate(30);
   pixelDensity(1);
   
@@ -132,11 +131,11 @@ function setup(){
   // INIT LAYERS
   debugLayer = createGraphics(height, height);
 
-  primaryLayerA = createGraphics(height, height);
+  primaryLayer = createGraphics(height, height);
+  
   secondaryLayerA = createGraphics(height, height);
   tertiaryLayerA = createGraphics(2*height,2*height); // the final image for zooming and rotating
   
-  primaryLayerB = createGraphics(height, height);
   secondaryLayerB = createGraphics(height, height);
   tertiaryLayerB = createGraphics(2*height,2*height); // the final image for zooming and rotating
   
@@ -150,7 +149,7 @@ function setup(){
   opacity = random(1) < 0.25 ? 255 : int(random(50,100)); // most of the time translucent, but every now and then BAM! Full colour.
   randPalette = random(palettes).map(e => hexToRgbWithOpacity(e, opacity));
 
-  w = primaryLayerA.width; // given it's square
+  w = primaryLayer.width; // given it's square
 
   // MOVERS
   n = int(random(20, 40));
@@ -176,7 +175,7 @@ function draw(){
   fillGraphicLayer(tertiaryLayerB);
   debugLayer.noFill();
   debugLayer.stroke(255);
-  
+  showWalls(debugLayer);
   // update global zoom and rotation
   if(rotateAndZoomMode){
     globalScale = 1/sqrt(2) + (1 + sin(frameCount * rotRate * (1/rotRateMultiplier) + HALF_PI + PI)); // start zoomed out and then zoom in
@@ -189,52 +188,69 @@ function draw(){
         bounce(w, m); // bounce off the walls
       }
       m.update(); // update position
-      if(DEBUGMODE) m.show(debugLayer);
+      // if(DEBUGMODE) m.show(debugLayer);
+      m.show(debugLayer);
     }
     handleMoverInteraction()
-    drawOverlap(primaryLayerA, currentInteractionMode);
-    // drawOverlap(primaryLayerB, chosenInteractionMode);
+    drawOverlap(primaryLayer, currentInteractionMode);
+    
   }
 
 
     // constructing the final image for each frame
     switch(currentConstructionMode){
       case construction.REFLECTIONSROTATIONS:
-        drawReflections(secondaryLayerA,primaryLayerA);
+        drawReflections(secondaryLayerA,primaryLayer);
         drawRotations(tertiaryLayerA, secondaryLayerA);
+        drawRotations(secondaryLayerB,primaryLayer);
+        drawReflections(tertiaryLayerB, secondaryLayerB);
         break;
       case construction.ROTATIONSREFLECTIONS:
-        drawRotations(secondaryLayerA,primaryLayerA);
+        drawRotations(secondaryLayerA,primaryLayer);
         drawReflections(tertiaryLayerA, secondaryLayerA);
+        drawReflections(secondaryLayerB,primaryLayer);
+        drawRotations(tertiaryLayerB, secondaryLayerB);
         break;
       case construction.REFLECTIONSREFLECTIONS:
-        drawReflections(secondaryLayerA,primaryLayerA);
+        drawReflections(secondaryLayerA,primaryLayer);
         drawReflections(tertiaryLayerA, secondaryLayerA);
+        drawRotations(secondaryLayerB, primaryLayer);
+        drawRotations(tertiaryLayerB, secondaryLayerB);
         break;
       case construction.ROTATIONSROTATIONS:
-        drawRotations(secondaryLayerA, primaryLayerA);
+        drawRotations(secondaryLayerA, primaryLayer);
         drawRotations(tertiaryLayerA, secondaryLayerA);
+        drawReflections(secondaryLayerB,primaryLayer);
+        drawReflections(tertiaryLayerB, secondaryLayerB);
         break;
-    } 
+    }
+    
+
 
     
-  
-    if(DEBUGMODE){
-      image(debugLayer, width/2, width/2, width, width);
-    } else {
-      push();
-      translate(width/2, height/2);
-      if(rotateAndZoomMode){
-        scale(globalScale);
-        rotate(frameCount*rotRate);
-      }
-      image(tertiaryLayerA, 0, 0, width, width);
-      pop();
+    let s = width/4;
+    image(debugLayer,5*width/6, height/4, s, s);
+    image(primaryLayer,5*width/6,3*height/4, s, s);
+    image(secondaryLayerA,2*width/4, height/4, s, s);
+    image(secondaryLayerB,2*width/4, 3*height/4, s, s);
+    image(tertiaryLayerA,width/6, height/4, s, s);
+    image(tertiaryLayerB,width/6, 3*height/4, s, s);
+    // if(DEBUGMODE){
+    //   image(debugLayer, width/2, width/2, width, width);
+    // } else {
+    //   push();
+    //   translate(width/2, height/2);
+    //   if(rotateAndZoomMode){
+    //     scale(globalScale);
+    //     rotate(frameCount*rotRate);
+    //   }
+    //   image(tertiaryLayerA, 0, 0, width, width);
+    //   pop();
       
-      // for comparison videos
-      // image(tertiaryLayerA, width*0.25, height/2, 0.95*width/2, 0.95*width/2);
-      // image(tertiaryLayerB, width*0.75, height/2, 0.95*width/2, 0.95*width/2);
-    }
+    //   // for comparison videos
+    //   // image(tertiaryLayerA, width*0.25, height/2, 0.95*width/2, 0.95*width/2);
+    //   // image(tertiaryLayerB, width*0.75, height/2, 0.95*width/2, 0.95*width/2);
+    // }
 
 
     if(frameCount%cycleFrames === 0) cycleSketch();
@@ -392,7 +408,7 @@ function keyPressed(){
 }
 
 function logMetaData(){
-  console.log(`Interaction Method: ${currentInteractionMode}\nConstruction Method: ${constructionCarousel[constructionIndex]}\nn: ${n}\nr: ${r/width} of width\npalette: ${randPalette}\nopacity: ${opacity}`);
+  console.log(`Interaction Method: ${currentInteractionMode}\nConstruction Method: ${currentConstructionMode}\nn: ${n}\nr: ${r/width} of width\npalette: ${randPalette}\nopacity: ${opacity}`);
 }
 
 function cycleSketch(){
