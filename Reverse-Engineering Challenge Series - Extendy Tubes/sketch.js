@@ -72,11 +72,11 @@ class ExtendyTube{
     this.a = random(PI);
     this.noiseOffset = random(10000);
     this.n = int(random(4,8));
-    this.s = max(width, height)*sFrac;
+    this.s = random(0.5*max(width, height)*sFrac, max(width, height)*sFrac);
     this.vertices = [];
     this.colour = random(palette);
     for(let i = 0; i < this.n; i++){
-      this.vertices.push(createVector(sFrac*width*cos(i*TWO_PI/this.n), sFrac*width*sin(i*TWO_PI/this.n)));
+      this.vertices.push(createVector(this.s*cos(i*TWO_PI/this.n), this.s*sin(i*TWO_PI/this.n)));
     }
   }
 
