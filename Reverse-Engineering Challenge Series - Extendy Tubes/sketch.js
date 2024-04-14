@@ -1,6 +1,6 @@
 /*
 Author: Project Somedays
-Date: 2024-04-13
+Date: 2024-04-13 last updated 2024-04-14
 Title: Recode-Rethink / Reverse Engineering Challenge Series: Extendy Tubes
 
 Leaping off from the mesmerising animations by Seohywork: https://x.com/seohyowork/status/1774789646578536803
@@ -11,12 +11,9 @@ Things to play with (watch this space):
   - Spacing/Density
   - Curved Tubes
   - 3D implementation
-*/
 
-const noiseRate = 200;
-const maxHFrac = 0.25;
-const sFrac = 0.05;
-const cols = 20;
+UPDATE: refactored to allow choosing generation and update methods WAY easily
+*/
 
 const palettes = [
   // ['#ffffff'],
@@ -36,32 +33,115 @@ const palettes = [
   ['#eac435', '#345995', '#03cea4', '#fb4d3d', '#ca1551']
 ];
 
+// video cap biz
+const captureMode = false;
+let fps = 30;
+let capturer = new CCapture({
+  format: 'png',
+  framerate: fps
+});
+
+const noiseRate = 200;
+let maxHFrac;
+let sFrac;
+
+let cycleOffset;
+let cycleFrames = 300;
+let totalFrames = 5*cycleFrames;
+
 let palette;
 
-let tubes = [];
+let extendagons = [];
+
+let generationMethods;
+let updateMethods;
+
+let updateMethod;
+let genMethod;
 
 function setup() {
   createCanvas(1920, 1080);
+  maxHFrac = random(0.15, 0.4);
+  sFrac = random(0.05, 0.1);
+  
   pixelDensity(1);
   palette = random(palettes);
+  cycleOffset = random(width);
 
-  for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*2){
-    for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*2){
-      tubes.push(new Extendagon(col, row))
-    }
-  }
+  generationMethods =  [
+    generateExtendagonsCrowdedRandDir,
+    generateExtendagonsCrowdedNoiseDir
+  ];
+
+
+  updateMethods = [
+    updateHNoiseWithSineEasing,
+    updateHSineCycle
+  ]
+
+  
+
+  genMethod = random(generationMethods);
+  updateMethod = random(updateMethods);
+
+  extendagons = genMethod();
 
 }
 
 function draw() {
-  background(220);
+  background(0);
+  if(frameCount === 1 && captureMode) capturer.start();
+  if(frameCount%cycleFrames === 0) setup();
+    
+ 
 
-  for(let t of tubes){
-    t.update();
+  for(let t of extendagons){
+    t.update(updateMethod(t));
     t.show();
   }
   
 
+  if (frameCount === totalFrames && captureMode) {
+    noLoop();
+    console.log('finished recording.');
+    capturer.stop();
+    capturer.save();
+    return;
+  }
+
+  if(captureMode) capturer.capture(document.getElementById('defaultCanvas0'));
+
 }
 
+function generateExtendagonsCrowdedNoiseDir(){
+  let extendagonArr = [];
+  let noiseZoom = random(300,500);
+  for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*3){
+    for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*3){
+      let a = map(noise(col/noiseZoom, row/noiseZoom), 0, 1, -PI/6, PI/6);
+      extendagonArr.push(new Extendagon(col, row, a + HALF_PI, random(0.5*max(width, height)*sFrac, max(width, height)*sFrac), int(random(4,8))));
+    }
+  }
+  return extendagonArr;
+}
 
+function generateExtendagonsCrowdedRandDir(){
+  let extendagonArr = [];
+  for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*2){
+    for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*2){
+      extendagonArr.push(new Extendagon(col, row, random(PI), random(0.5*max(width, height)*sFrac, max(width, height)*sFrac), int(random(4,8))));
+    }
+  }
+  return extendagonArr;
+}
+
+function updateHNoiseWithSineEasing(extendagon){
+  let noiseVal = noise(extendagon.noiseOffset + frameCount/noiseRate);
+  return 0.5*(sin(noiseVal*HALF_PI) + 1)*max(width, height)*maxHFrac;
+}
+
+function updateHSineCycle(extendagon){
+  let offset = map(extendagon.p.x + cycleOffset + extendagon.p.y, 0, width + cycleOffset+ height, 0, TWO_PI);
+  let a = radians(frameCount) - offset;
+  return 0.5*(sin(a) + 1)*max(width, height)*maxHFrac;//sin(a) < 0 ? 0 : 0.5*(sin(a) + 1)*max(width, height)*maxHFrac;
+}

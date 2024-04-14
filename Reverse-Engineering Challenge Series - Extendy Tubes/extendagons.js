@@ -1,11 +1,11 @@
 class Extendagon{
-    constructor(cx, cy){
+    constructor(cx, cy, a, s, n){
       this.p = createVector(cx, cy);
       this.h = 0;
-      this.a = random(PI);
+      this.a = a;
       this.noiseOffset = random(10000);
-      this.n = int(random(4,8));
-      this.s = random(0.5*max(width, height)*sFrac, max(width, height)*sFrac);
+      this.n = n;
+      this.s = s;
       this.vertices = [];
       this.colour = random(palette);
       for(let i = 0; i < this.n; i++){
@@ -13,9 +13,8 @@ class Extendagon{
       }
     }
   
-    update(){
-      let noiseVal = noise(this.noiseOffset + frameCount/noiseRate);
-      this.h = 0.5*(sin(noiseVal*HALF_PI) + 1)*max(width, height)*maxHFrac;
+    update(h){
+      this.h = h;
     }
   
     show(){ 
