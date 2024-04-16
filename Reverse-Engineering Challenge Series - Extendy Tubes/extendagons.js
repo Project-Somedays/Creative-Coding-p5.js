@@ -1,13 +1,15 @@
 class Extendagon{
-    constructor(cx, cy, a, s, n){
+    constructor(cx, cy, a, s, n, h, colour, startFrame){
       this.p = createVector(cx, cy);
-      this.h = 0;
+      this.h = 1;
       this.a = a;
       this.noiseOffset = random(10000);
       this.n = n;
+      this.h = h;
       this.s = s;
+      this.startFrame = startFrame;
       this.vertices = [];
-      this.colour = random(palette);
+      this.colour = colour;
       for(let i = 0; i < this.n; i++){
         this.vertices.push(createVector(this.s*cos(i*TWO_PI/this.n), this.s*sin(i*TWO_PI/this.n)));
       }
@@ -15,6 +17,21 @@ class Extendagon{
   
     update(h){
       this.h = h;
+    }
+
+    precess(a){
+      this.a = a;
+    }
+    rotateVertices(){
+      for(let i = 0; i < this.n; i++){
+        let a = i*TWO_PI/this.n + frameCount/rotRate;
+        this.vertices[i].set(this.s*cos(a), this.s*sin(a));
+      }
+
+      let c = createVector(0,0);
+      // sort so that they appear in the correct order
+      this.vertices.sort((a,b) => p5.Vector.sub(c, a).heading() - p5.Vector.sub(c, b).heading())
+      
     }
   
     show(){ 
@@ -26,13 +43,13 @@ class Extendagon{
   
   
        for(let i = 0; i < this.vertices.length; i++){
-        beginShape()
+        beginShape();
         vertex(this.vertices[i].x, this.vertices[i].y);
         vertex(this.vertices[i].x, this.vertices[i].y + this.h);
         let nextIndex = (i + 1)%this.vertices.length;
         vertex(this.vertices[nextIndex].x, this.vertices[nextIndex].y + this.h);
         vertex(this.vertices[nextIndex].x, this.vertices[nextIndex].y);
-        endShape(CLOSE) 
+        endShape(CLOSE); 
        }
   
       beginShape();
