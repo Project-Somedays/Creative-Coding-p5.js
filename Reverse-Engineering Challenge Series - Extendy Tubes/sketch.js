@@ -36,7 +36,7 @@ const palettes = [
 // video cap biz
 const captureMode = false;
 let rotateMode = false;
-let precessMode = true;
+let precessMode;
 let fps = 30;
 let capturer = new CCapture({
   format: 'png',
@@ -55,6 +55,7 @@ const rotRate = 50;
 let totalFrames = 5*cycleFrames;
 
 let palette;
+let cyclePaletteMode;
 let paletteIx = -1;
 
 let extendagons = [];
@@ -66,28 +67,45 @@ let updateMethod;
 let genMethod;
 
 function setup() {
-  createCanvas(1080, 1080);
+  createCanvas(windowWidth,  windowHeight);
+  // createCanvas(1080, 1080);
+  // createCanvas(1920, 1080);
+  pixelDensity(1);
+  
+  precessMode = random(1) < 0.3;
+  
   maxHFrac = random(0.1, 0.2);
   sFrac = random(0.0075, 0.015);
-  paletteIx = (paletteIx + 1)%palettes.length;
+
+  // choosing colours
+  cyclePaletteMode = random(1) < 0.25;
+  if(cyclePaletteMode){
+    paletteIx = (paletteIx + 1)%palettes.length;
+    palette = palettes[paletteIx];
+  } else {
+    palette = random(palettes);
+  }
+  
   console.log(paletteIx);
   console.log(palettes[paletteIx]); 
-  pixelDensity(1);
-  palette = palettes[paletteIx]//random(palettes);
+  
+  
   cycleOffset = random(width);
 
   generationMethods =  [
     generateExtendagonsCrowdedRandDir,
-    generateExtendagonsCrowdedNoiseDir
+    generateExtendagonsCrowdedNoiseDir,
+    generateExtendagonsOnASpiral
   ];
 
   updateMethods = [
     updateHNoiseWithSineEasing,
-    updateHSineCycle
+    updateHSineCycle,
+    updateHSineCycleStartFrameDelay
   ]
 
-  genMethod = generateOnASpiral;//random(gene rationMethods);
-  updateMethod = updateHSineCycleStartFrameDelay;//random(updateMethods);
+  genMethod = random(generationMethods);
+  updateMethod = random(updateMethods);
 
   extendagons = genMethod(400);
 }
@@ -95,7 +113,7 @@ function setup() {
 function draw() {
   background(0);
   if(frameCount === 1 && captureMode) capturer.start();
-  // if(frameCount%cycleFrames === 0) setup();
+  if(frameCount%cycleFrames === 0) setup();
     
   for(let t of extendagons){
     t.update(updateMethod(t));
@@ -119,7 +137,7 @@ function precessExtendagons(extendagon){
   return 2*TWO_PI*sin((frameCount - extendagon.startFrame)/150)
 }
 
-function generateOnASpiral(nToProduce){
+function generateExtendagonsOnASpiral(nToProduce){
   let extendagonArr = [];
   
   for(let i = 0; i < nToProduce; i++){
@@ -139,8 +157,17 @@ function generateExtendagonsCrowdedNoiseDir(nToProduce){
   let noiseZoom = random(300,500);
   for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*3){
     for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*3){
-      let a = map(noise(col/noiseZoom, row/noiseZoom), 0, 1, -PI/6, PI/6);
-      extendagonArr.push(new Extendagon(col, row, a + HALF_PI, random(0.5*max(width, height)*sFrac, max(width, height)*sFrac), int(random(4,8), max(width, height)*maxHFrac,random(palette),0)));
+      let params = {
+        cx : col,
+        cy : row,
+        a : map(noise(col/noiseZoom, row/noiseZoom), 0, 1, -PI/6, PI/6) + HALF_PI,
+        s : random(0.5*max(width, height)*sFrac, max(width, height)*sFrac),
+        n : int(random(4,8)),
+        h : max(width, height)*maxHFrac,
+        colour : random(palette),
+        startFrame : 0
+      }
+      extendagonArr.push(new Extendagon(params));
     }
   }
   return extendagonArr;
@@ -152,9 +179,18 @@ function generateExtendagonsCrowdedNoiseDirwColour(nToProduce){
   for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*3){
     for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*3){
       let noiseVal = noise(col/noiseZoom, row/noiseZoom)
-      let a = map(noiseVal, 0, 1, -PI/6, PI/6);
       let c = palette[int(map(noiseVal, 0, 1, 0, palette.length))];
-      extendagonArr.push(new Extendagon(col, row, a + HALF_PI, random(0.5*max(width, height)*sFrac, max(width, height)*sFrac), int(random(4,8), max(width, height)*maxHFrac,c,0)));
+      let params = {
+        cx : col,
+        cy : row,
+        a : map(noiseVal, 0, 1, -PI/6, PI/6) + HALF_PI,
+        s : random(0.5*max(width, height)*sFrac, max(width, height)*sFrac),
+        n : int(random(4,8)),
+        h : max(width, height)*maxHFrac,
+        colour : c,
+        startFrame : 0
+      }
+      extendagonArr.push(new Extendagon(params));
     }
   }
   return extendagonArr;
@@ -164,7 +200,17 @@ function generateExtendagonsCrowdedRandDir(nToProduce){
   let extendagonArr = [];
   for(let col = 0; col < width*1.2 ; col += min(width, height)*sFrac*2){
     for(let row = 0; row < height*1.2; row += min(width, height)*sFrac*2){
-      extendagonArr.push(new Extendagon(col, row, random(PI), random(0.5*max(width, height)*sFrac, max(width, height)*sFrac), int(random(4,8), max(width, height)*maxHFrac, random(palette),0)));
+      let params = {
+        cx : col,
+        cy : row,
+        a : random(PI),
+        s : random(0.5*max(width, height)*sFrac, max(width, height)*sFrac),
+        n : int(random(4,8)),
+        h : max(width, height)*maxHFrac,
+        colour : random(palette),
+        startFrame : 0
+      }
+      extendagonArr.push(new Extendagon(params));
     }
   }
   return extendagonArr;
