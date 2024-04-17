@@ -1,15 +1,15 @@
 class Extendagon{
-    constructor(cx, cy, a, s, n, h, colour, startFrame){
-      this.p = createVector(cx, cy);
+    constructor(params){
+      this.p = createVector(params.cx, params.cy);
       this.h = 1;
-      this.a = a;
+      this.a = params.a;
       this.noiseOffset = random(10000);
-      this.n = n;
-      this.h = h;
-      this.s = s;
-      this.startFrame = startFrame;
+      this.n = params.n;
+      this.h = params.h;
+      this.s = params.s;
+      this.startFrame = params.startFrame;
       this.vertices = [];
-      this.colour = colour;
+      this.colour = params.colour;
       for(let i = 0; i < this.n; i++){
         this.vertices.push(createVector(this.s*cos(i*TWO_PI/this.n), this.s*sin(i*TWO_PI/this.n)));
       }

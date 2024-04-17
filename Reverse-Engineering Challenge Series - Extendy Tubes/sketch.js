@@ -1,6 +1,6 @@
 /*
 Author: Project Somedays
-Date: 2024-04-13 last updated 2024-04-14
+Date: 2024-04-13 last updated 2024-04-17
 Title: Recode-Rethink / Reverse Engineering Challenge Series: Extendagons
 
 Leaping off from the mesmerising animations by Seohywork: https://x.com/seohyowork/status/1774789646578536803
@@ -75,7 +75,7 @@ function setup() {
   precessMode = random(1) < 0.3;
   
   maxHFrac = random(0.1, 0.2);
-  sFrac = random(0.0075, 0.015);
+  sFrac = random(0.01, 0.05);
 
   // choosing colours
   cyclePaletteMode = random(1) < 0.25;
@@ -113,7 +113,7 @@ function setup() {
 function draw() {
   background(0);
   if(frameCount === 1 && captureMode) capturer.start();
-  if(frameCount%cycleFrames === 0) setup();
+  // if(frameCount%cycleFrames === 0) setup();
     
   for(let t of extendagons){
     t.update(updateMethod(t));
@@ -142,15 +142,24 @@ function generateExtendagonsOnASpiral(nToProduce){
   
   for(let i = 0; i < nToProduce; i++){
     let p = archimedesSpiral(2,1,i);
-    let a = 0;// map(noise(p.x/noiseZoom, p.y/noiseZoom), 0, 1, -PI/6, PI/6);
-    let s = map(i, 0, nToProduce, 0.5, 3)*max(width, height)*sFrac;
-    let hMax = map(i, 0, nToProduce, 0, 0.3*min(width, height));
     let c = palette[i%palette.length];
-    extendagonArr.push(new Extendagon(width/2 + p.x, height/2 + p.y, a, s, random(4,8), hMax, c, i));
+
+    let params = {
+      cx : p.x + width/2,
+      cy : p.y + height/2,
+      a : 0,
+      s : map(i, 0, nToProduce, 0.5, 3)*max(width, height)*sFrac/3,
+      n : int(random(4,8)),
+      h : map(i, 0, nToProduce, 0, 0.3*min(width, height)),
+      colour : c,
+      startFrame : i
+    }
+    extendagonArr.push(new Extendagon(params));
   }
-  extendagonArr.sort((a,b) => b.p.y - a.p.y);
+  extendagonArr.sort((a,b) => b.p.y - a.p.y); // need to draw the extendagons top to bottom
   return extendagonArr;
 }
+
 
 function generateExtendagonsCrowdedNoiseDir(nToProduce){
   let extendagonArr = [];
