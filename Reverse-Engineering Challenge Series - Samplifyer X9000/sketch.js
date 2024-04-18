@@ -5,6 +5,10 @@ Title: The Samplifier X9000
 
 Saw it here first: https://www.youtube.com/watch?v=U1KiC0AXhHg
 Was a great usecase of the p5.js copy() function
+
+To Fix: 
+- Scale by just the boxes that are on the screen
+- Autowarp?
 */
 
 let pic; // src image
@@ -70,16 +74,16 @@ function draw() {
 function keyPressed(){
   switch(keyCode){
     case LEFT_ARROW:
-      xOff -= step;
+      if(abs(xOff - step) < spacing) xOff -= step;
       break;
     case RIGHT_ARROW:
-      xOff += step;
+      if(abs(xOff + step) < spacing) xOff += step;
       break;
     case UP_ARROW:
-      yOff -= step;
+      if(abs(yOff - step) < spacing) yOff -= step;
       break;
     case DOWN_ARROW:
-      yOff += step;
+      if(abs(yOff + step) < spacing) yOff += step;
       break;
     default:
       break;
@@ -105,6 +109,8 @@ function keyPressed(){
     default:
       break;
   }
+
+  // console.log(`margin: ${margin}, xOff: ${xOff}, yOff: ${yOff}`);
 }
 
 function setBoxSizeAndSpacing(){
