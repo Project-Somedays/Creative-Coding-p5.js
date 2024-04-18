@@ -15,13 +15,16 @@ let boxS;
 let samples = 20;
 let xOff = 0;
 let yOff = 0;
-let step = 5;
+let step = 10;
 let zoomStep = 5;
 let spacing;
 function preload(){
   // pic = loadImage("images/george_washington.jpg");
   // pic = loadImage("images/Mona_Lisa.jpg");
-  pic = loadImage("images/van_Gogh.jpg");
+  // pic = loadImage("images/van_Gogh.jpg");
+  // pic = loadImage("images/American_Gothic.jpg");
+  // pic = loadImage("images/Girl_with_a_Pearl_Earring.jpg")
+  pic = loadImage("images/Che_Guevara.jpg");
 }
 
 function setup() {
@@ -42,11 +45,14 @@ function setup() {
 
 function draw() {
   background(0);
-  
-  for(let i = 0; i < pic.width; i += 2*spacing){
-    for(let j = 0; j < pic.height; j += 2*spacing){
-      targeting.rect(i + xOff - boxS/2, j + yOff - boxS/2, boxS, boxS);
-      dst.copy(pic, i + xOff - boxS/2, j + yOff - boxS/2, boxS, boxS, i, j, 2*boxS, 2*boxS);
+  dst.clear();
+ 
+  for(let i = 0; i < pic.width/spacing; i ++){
+    for(let j = 0; j < pic.height/spacing; j ++){
+      let tlx = i*2*spacing + xOff - boxS/2;
+      let tly = j*2*spacing + yOff - boxS/2;
+      targeting.rect(tlx, tly, boxS, boxS);
+      dst.copy(pic, tlx, tly, boxS, boxS, i*pic.width/samples, j*pic.width/samples, pic.width/samples, pic.width/samples);
     }
   }
   
