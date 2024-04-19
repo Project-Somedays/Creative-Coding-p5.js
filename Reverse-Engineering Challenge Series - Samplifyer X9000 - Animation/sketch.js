@@ -4,11 +4,8 @@ Date: 2024-04-17
 Title: The Samplifier X9000
 
 Saw it here first: https://www.youtube.com/watch?v=U1KiC0AXhHg
-Was a great usecase of the p5.js copy() function
+Was a great usecase for the p5.js copy() function
 
-To Fix: 
-- Scale by just the boxes that are on the screen
-- Autowarp?
 */
 
 let pic; // src image
