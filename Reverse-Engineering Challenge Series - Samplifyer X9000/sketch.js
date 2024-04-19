@@ -8,38 +8,48 @@ Was a great usecase for the p5.js copy() function
 
 */
 
-let pic; // src image
+let sandboxMode = false;
+
+// animation mode
+let boxSOffset, xOffset, yOffset;
+
+let pics = []; // src images
+let currentPicIndex = 0;
+let currentPic;
 let sclF; // to draw the final image
 let dst; // final target image
 let targeting; // debug view
 let boxS;
-let samples = 20;
+let samples = 10;
 let xOff = 0;
 let yOff = 0;
 let step = 10;
 let zoomStep = 5;
 let spacing;
 function preload(){
-  // pic = loadImage("images/george_washington.jpg");
-  // pic = loadImage("images/Mona_Lisa.jpg");
-  // pic = loadImage("images/van_Gogh.jpg");
-  // pic = loadImage("images/American_Gothic.jpg");
-  // pic = loadImage("images/Girl_with_a_Pearl_Earring.jpg")
-  pic = loadImage("images/Che_Guevara.jpg");
+  pics.push(loadImage("images/george_washington.jpg"));
+  pics.push(loadImage("images/Mona_Lisa.jpg"));
+  pics.push(loadImage("images/van_Gogh.jpg"));
+  pics.push(loadImage("images/American_Gothic.jpg"));
+  pics.push(loadImage("images/Girl_with_a_Pearl_Earring.jpg"))
+  pics.push(loadImage("images/Che_Guevara.jpg"));
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // createCanvas(windowWidth, windowHeight);
+  createCanvas(1920, 1080);
+  boxSOffset = random(1000);
+  xOffset = random(1000);
+  yOffset = random(1000);
+
+  currentPic = pics[currentPicIndex];
  
   imageMode(CENTER);
   noFill();
-  targeting = createGraphics(pic.width, pic.height);
-  targeting.stroke(255);
-  targeting.strokeWeight(2);
-  targeting.noFill();
+  refreshGraphics();
 
-  sclF = min(height/pic.height, 0.5*width/pic.width);
-  dst = createGraphics(pic.width, pic.height);
+  sclF = min(height/currentPic.height, 0.5*width/currentPic.width);
+  dst = createGraphics(currentPic.width, currentPic.height);
   
   setBoxSizeAndSpacing();
 }
@@ -47,21 +57,37 @@ function setup() {
 function draw() {
   background(0);
   dst.clear();
+
+  if(!sandboxMode){
+    xOff = int(map(noise(xOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
+    yOff = int(map(noise(yOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
+    let boxDefault = int(currentPic.width / (samples*2+ 1));
+    boxS = int(map(noise(boxSOffset + frameCount/100), 0, 1, boxDefault*0.1, 5*boxDefault));
+
+  }
+  
  
-  for(let i = 0; i < pic.width/spacing; i ++){
-    for(let j = 0; j < pic.height/spacing; j ++){
+  for(let i = 0; i < currentPic.width/spacing; i ++){
+    for(let j = 0; j < currentPic.height/spacing; j ++){
       let tlx = i*2*spacing + xOff - boxS/2;
       let tly = j*2*spacing + yOff - boxS/2;
       targeting.rect(tlx, tly, boxS, boxS);
-      dst.copy(pic, tlx, tly, boxS, boxS, i*pic.width/samples, j*pic.width/samples, pic.width/samples, pic.width/samples);
+      dst.copy(currentPic, tlx, tly, boxS, boxS, i*currentPic.width/samples, j*currentPic.width/samples, currentPic.width/samples, currentPic.width/samples);
     }
   }
   
   // drawing final images and overlays
-  image(pic, width/4, height/2, pic.width*sclF, pic.height*sclF);
-  image(targeting, width/4, height/2, pic.width*sclF, pic.height*sclF);
-  image(dst, 3*width/4, height/2, dst.width*sclF, dst.height*sclF);
+  let debugScl = 0.5;
+  let masterScl = 1.5;
+  push();
+  translate(width/2,height/2);
+  rotate(-HALF_PI);
+  image(dst, 0, 0, dst.width*sclF*masterScl, dst.height*sclF*masterScl);
+  image(currentPic, -width*0.2, -height*0.7, currentPic.width*sclF*debugScl, currentPic.height*sclF*debugScl);
+  image(targeting, -width*0.2, -height*0.7, currentPic.width*sclF*debugScl, currentPic.height*sclF*debugScl);
   
+  pop();
+ 
   // for(let s of samples){
   targeting.clear();  
   // }
@@ -69,48 +95,91 @@ function draw() {
 
 
 function keyPressed(){
-  switch(keyCode){
-    case LEFT_ARROW:
-      if(abs(xOff - step) < spacing) xOff -= step;
-      break;
-    case RIGHT_ARROW:
-      if(abs(xOff + step) < spacing) xOff += step;
-      break;
-    case UP_ARROW:
-      if(abs(yOff - step) < spacing) yOff -= step;
-      break;
-    case DOWN_ARROW:
-      if(abs(yOff + step) < spacing) yOff += step;
-      break;
-    default:
-      break;
+  if(sandboxMode){
+    switch(keyCode){
+      case LEFT_ARROW:
+        if(abs(xOff - step) < spacing) xOff -= step;
+        break;
+      case RIGHT_ARROW:
+        if(abs(xOff + step) < spacing) xOff += step;
+        break;
+      case UP_ARROW:
+        if(abs(yOff - step) < spacing) yOff -= step;
+        break;
+      case DOWN_ARROW:
+        if(abs(yOff + step) < spacing) yOff += step;
+        break;
+      default:
+        break;
+    }
+  
+    switch(key){
+      case "=":
+        boxS += zoomStep;
+        break;
+      case "-":
+        boxS -= zoomStep;
+        break;
+      case ".":
+        samples ++;
+        setBoxSizeAndSpacing();
+        break;
+      case ",":
+        if(samples - 1 > 0) samples --;
+        setBoxSizeAndSpacing();
+        break;
+      case " ":
+        save("Sampler.png");
+        break;
+      case "s":
+        sandboxMode = !sandboxMode;
+        break;
+      default:
+        break;
+    }
+  } else{
+    switch(key){
+      case ",":
+        if(samples - 1 > 0) samples --;
+        setBoxSizeAndSpacing();
+        break;
+      case " ":
+        save("Sampler.png");
+        break;
+      case " ":
+        save("Sampler.png");
+        break;
+      case "s":
+        sandboxMode = !sandboxMode;
+        break;
+      default:
+        break;
   }
-
-  switch(key){
-    case "=":
-      boxS += zoomStep;
-      break;
-    case "-":
-      boxS -= zoomStep;
-      break;
-    case ".":
-      samples ++;
-      setBoxSizeAndSpacing();
-      break;
-    case ",":
-      samples --;
-      setBoxSizeAndSpacing();
-      break;
-    case " ":
-      save("Sampler.png");
-    default:
-      break;
-  }
+  
 
   // console.log(`margin: ${margin}, xOff: ${xOff}, yOff: ${yOff}`);
 }
+}
+
+function mousePressed(){
+  if(mouseButton === LEFT){
+    refreshGraphics();
+  }
+}
+
+function refreshGraphics(){
+  currentPic = pics[currentPicIndex];
+  sclF = min(height/currentPic.height, width/currentPic.width);
+  dst = createGraphics(currentPic.width, currentPic.height);
+  setBoxSizeAndSpacing();
+  targeting = createGraphics(currentPic.width, currentPic.height)
+  targeting.stroke(255);
+  targeting.strokeWeight(5);
+  targeting.noFill();
+  currentPicIndex = (currentPicIndex + 1)%pics.length;
+}
 
 function setBoxSizeAndSpacing(){
-  boxS = int(pic.width / (samples*2+ 1));
-  spacing = int(pic.width / (samples*2+ 1));
+  boxS = int(currentPic.width / (samples*2+ 1));
+  spacing = int(currentPic.width / (samples*2+ 1));
 }
