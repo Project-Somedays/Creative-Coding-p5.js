@@ -20,19 +20,29 @@ let sclF; // to draw the final image
 let dst; // final target image
 let targeting; // debug view
 let boxS;
-let samples = 10;
+let samples = 8;
 let xOff = 0;
 let yOff = 0;
 let step = 10;
 let zoomStep = 5;
 let spacing;
+let cycleFrames = 600;
 function preload(){
-  pics.push(loadImage("images/george_washington.jpg"));
-  pics.push(loadImage("images/Mona_Lisa.jpg"));
-  pics.push(loadImage("images/van_Gogh.jpg"));
-  pics.push(loadImage("images/American_Gothic.jpg"));
-  pics.push(loadImage("images/Girl_with_a_Pearl_Earring.jpg"))
-  pics.push(loadImage("images/Che_Guevara.jpg"));
+  // pics.push(loadImage("images/george_washington.jpg"));
+  // pics.push(loadImage("images/Mona_Lisa.jpg"));
+  // pics.push(loadImage("images/van_Gogh.jpg"));
+  // pics.push(loadImage("images/American_Gothic.jpg"));
+  // pics.push(loadImage("images/Girl_with_a_Pearl_Earring.jpg"))
+  // pics.push(loadImage("images/Che_Guevara.jpg"));
+  pics.push(loadImage("images/Ghandi.jpg"));
+  pics.push(loadImage("images/Nelson_Mandela.jpg"));
+  pics.push(loadImage("images/Beethoven.jpg"));
+  pics.push(loadImage("images/Churchill.jpg"));
+  pics.push(loadImage("images/Dali.jpg"));
+  pics.push(loadImage("images/Ducreux1.jpg"));
+  pics.push(loadImage("images/Einstein.jpg"));
+  pics.push(loadImage("images/Marx.jpg"));
+  
 }
 
 function setup() {
@@ -59,11 +69,14 @@ function draw() {
   dst.clear();
 
   if(!sandboxMode){
-    xOff = int(map(noise(xOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
-    yOff = int(map(noise(yOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
+    // xOff = int(map(noise(xOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
+    // yOff = int(map(noise(yOffset + frameCount/500), 0, 1, -spacing/2, spacing/2));
+    xOff = 0;
+    yOff = 0;
     let boxDefault = int(currentPic.width / (samples*2+ 1));
-    boxS = int(map(noise(boxSOffset + frameCount/100), 0, 1, boxDefault*0.1, 5*boxDefault));
-
+    // boxS = int(map(noise(boxSOffset + frameCount/100), 0, 1, boxDefault*0.1, 5*boxDefault));
+    boxS = map(sin(-frameCount*TWO_PI/cycleFrames),-1, 1, 1.5,3)*boxDefault;
+    if(frameCount%cycleFrames === 0) refreshGraphics();
   }
   
  
