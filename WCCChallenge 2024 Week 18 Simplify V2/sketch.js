@@ -8,14 +8,18 @@ Join The Birb's Nest Discord community! https://discord.gg/S8c7qcjw2b
 
 Building off Dan Shiffman's excellent Inverse Kinematics code: https://www.youtube.com/watch?v=hbgDqyy8bIw
 
-Cleaned up last week's code: https://openprocessing.org/sketch/2253921 and... I mean, don't fix what aint broke? Fit the theme!
+Cleaned up last week's code: https://openprocessing.org/sketch/2253921 and... don't fix what aint broke? Fit the theme!
+Is there some deep metaphor like "what the education system does to young minds who don't fit the mold"? I just think it looks neat.
 
-Brains trust: how do YOU manage animations with multiple stages? I hacked this together, but how SHOULD I be doing it?
+Brains trust: how do YOU manage animations with multiple stages? Been experimenting with a couple of different methods, but how SHOULD I be doing it?
 
-Also note: 99% I got my easing function backwards, but it works so...
+Also note: 99% sure I got my easing function backwards to how it usually goes.
 */
 
-let n = 30;
+const captureMode = false;
+let servoSound;
+
+let n = 60;
 
 let t;
 let handMode = false;
@@ -43,26 +47,39 @@ let simplifyLerpCntrl = 0;
 let currentFrame = 0;
 let currentPhase;
 let totalFrames;
+let frameCnv;
 
 
 let handSize;
 let hand;
 
+// ---------- RECORDING BIZ ------------- //
+const fps = 30;
+let capturer;
+
+
 function preload(){
   hand = loadImage("Hand.png");
+  servoSound = loadSound("mechanicalclamp-6217.mp3")
 }
 
 
 function setup() {
   // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
-  createCanvas(1080, 1080);
-	
+   createCanvas(1080, 1080);
+
+  capturer = new CCapture({
+    format: 'png',
+    framerate: fps
+  });
+
+	frameCnv = makeFrame();
 	describe("Irregular shape moves into the middle of the screen. Robot arms deploy and push the vertices in until the shape is a circle. Circle moves on and the next moves in.");
 	
-  // createCanvas(1080, 1080);
+ 
   imageMode(CENTER);
 	pixelDensity(1);
-	frameRate(30);
+	if(!captureMode) frameRate(30);
 
   avR = width/5;
   
@@ -84,7 +101,7 @@ function setup() {
   t.updateLerpToSimple(1);
   for(let i = 0; i < n; i++){
     let a = i * TWO_PI/(n);
-    let basePos = createVector(0.6*width*cos(a) + width/2, 0.6*width*sin(a) + height/2);
+    let basePos = createVector(0.525*width*cos(a) + width/2, 0.525*width*sin(a) + height/2);
     arms[i] = new Arm(0.5*width*cos(a) + width/2, 0.5*width*sin(a) + height/2, basePos, basePos);
   }
   textSize(50);
@@ -94,8 +111,12 @@ function setup() {
 
 function draw() {
   background(0);
+
+  if(captureMode && frameCount === 1) capturer.start()
+	
   currentFrame = frameCount%totalFrames; // RESET
   stroke(255);
+	fill(255);
   // text(`currentFrame: ${currentFrame}, phaseFrames: ${currentPhase.cumulativeFrames}`, width/2, height*0.9)
 
 
@@ -121,6 +142,7 @@ function draw() {
       moveShapeLerpCntrl += 1/phases.MOVE_IN.frames; // only need to get half way
       t.move(startP, restP, easeInOutSine(moveShapeLerpCntrl));
       t.show();
+			image(frameCnv, width/2, height/2);
       for(let a of arms){
         a.update();
         a.show();
@@ -129,6 +151,8 @@ function draw() {
 
     // ---------------- ENGAGE ARMS ------------------- //
     case phases.ENGAGE_ARMS:
+      servoSound.stop();
+      servoSound.play();
       engageArmsLerpCntrl += 1/phases.ENGAGE_ARMS.frames;
       t.show();
       let targetArr = [];
@@ -136,6 +160,7 @@ function draw() {
       for(let i = 0; i < n; i++){
         targetArr[i] = p5.Vector.lerp(absPoints[i],arms[i].basePos, easeInOutSine(engageArmsLerpCntrl));
       }
+			image(frameCnv, width/2, height/2);
       trackArmsToPoints(targetArr);
       break;
 
@@ -145,11 +170,14 @@ function draw() {
       simplifyLerpCntrl += 1/phases.SIMPLIFY.frames;
       t.updateLerpToSimple(easeInOutSine(simplifyLerpCntrl));
       t.show();
+			image(frameCnv, width/2, height/2);
       trackArmsToPoints(t.getAbsPoints());
       break;
 
      // --------------- DISENGAGE ----------------- //
      case phases.DISENGAGE_ARMS:
+      servoSound.stop();
+      servoSound.play();
       engageArmsLerpCntrl -= 1/phases.ENGAGE_ARMS.frames;
       t.show();
       let disengageTargetArr = [];
@@ -157,6 +185,7 @@ function draw() {
       for(let i = 0; i < n; i++){
         disengageTargetArr[i] = p5.Vector.lerp(disengageAbsPoints[i],arms[i].basePos, easeInOutSine(engageArmsLerpCntrl));
       }
+			image(frameCnv, width/2, height/2);
       trackArmsToPoints(disengageTargetArr);
       break;
 
@@ -167,6 +196,7 @@ function draw() {
       moveShapeLerpCntrl += 1/phases.MOVE_OUT.frames; // only need to get half way
       t.move(endP, restP, easeInOutSine(moveShapeLerpCntrl));
       t.show();
+			image(frameCnv, width/2, height/2);
       for(let a of arms){
         // a.update();
         a.show();
@@ -175,6 +205,17 @@ function draw() {
 
 
   }
+
+  if (captureMode && frameCount > 5*totalFrames) {
+    noLoop();
+    console.log('finished recording.');
+    capturer.stop();
+    capturer.save();
+    return;
+  }
+
+  if(captureMode) capturer.capture(document.getElementById('defaultCanvas0'));
+}
 
   // ------------------- RETARGET ALL ARMS --------------------- //
 
@@ -186,8 +227,6 @@ function draw() {
       arms[i].show();
     }
   }
-
-}
 
 
 // ----------- WHICH PHASE WE IN? --------------- //
@@ -221,4 +260,19 @@ function easeInOutSine(x) {
 
 function keyPressed(){
   if(key === ' ') handMode = !handMode;
+}
+
+function makeFrame(){
+	let frameCnv = createGraphics(width, width);
+	
+	
+	frameCnv.strokeWeight(width/10);
+	frameCnv.stroke(25);
+	frameCnv.noFill();
+	frameCnv.circle(width/2, height/2, width);
+	frameCnv.stroke(50);
+	frameCnv.strokeWeight(width/80);
+	frameCnv.circle(width/2, height/2, width + width/10);
+	frameCnv.circle(width/2, height/2, width - width/10);
+	return frameCnv;
 }
