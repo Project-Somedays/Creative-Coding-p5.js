@@ -12,21 +12,57 @@ let rate = 0.005;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   r = width/10;
-  for(let )
-
+  for(let i = 0; i < n; i++){
+    tests[i] = new CircCollection();
+  }
+  strokeWeight(1);
+  stroke(255);
+  noFill();
+  // noStroke();
+ 
+  
 }
 
 function draw() {
-  background(220);
-  test.update();
-  test.show();
+  background(0);
+  
+  for(let t of tests){
+    t.update();
+    t.show();
+  }
+
+  drawOverlap();
+  
+}
+
+function drawOverlap(){
+  for(let i = 0; i < tests.length; i++){
+    for(let j = i; j < tests.length; j++){
+      // see if we're out of range
+      if(p5.Vector.dist(tests[i].c, tests[j].c) > 2*r) continue;
+
+      // if not, go through and check for overlap between any of the brushes
+      let brushesA = tests[i].getAbsPositions();
+      let brushesB = tests[j].getAbsPositions();
+      for(let a = 0; a < brushesA.length; a ++){
+        for(let b = a; b < brushesB.length; b ++){
+          let brushA = brushesA[a];
+          let brushB = brushesB[b];
+          let d = p5.Vector.dist(brushA.p, brushB.p)
+          if(d > brushA.radius + brushB.radius) continue;
+          // stroke(int(map(d, 0, brushA.r + brushB.r, 255, 0)));
+          line(brushA.p.x, brushA.p.y, brushB.p.x, brushB.p.y);
+        }
+      }
+    }
+  }
 }
 
 
 class CircCollection{
   constructor(){
     this.c = createVector(0, 0);
-    this.brushes = calculateInnerCircles(width/6, 10);
+    this.brushes = calculateInnerCircles(this.c.x, this.c.y, width/6, 10);
     this.noiseOffsetAngle = random(10000);
     this.noiseOffsetX = random(10000);
     this.noiseOffsetY = random(10000);
@@ -34,36 +70,44 @@ class CircCollection{
   }
 
   update(){
-    let x = map(noise(this.noiseOffsetX + frameCount*rate), 0, 1, 0, width);
-    let y = map(noise(this.noiseOffsetY + frameCount*rate), 0, 1, 0, height);
+    let x = map(noise(this.noiseOffsetX + frameCount*rate), 0, 1, -width*0.1, 1.1*width);
+    let y = map(noise(this.noiseOffsetY + frameCount*rate), 0, 1, -height*0.1, 1.1*height);
+    this.a = map(noise(this.noiseOffsetAngle + frameCount*rate), 0, 1, -TWO_PI, TWO_PI);
     this.c.set(x,y);
-    this.a = map(noise(this.noiseOffsetX + frameCount*rate/2), 0, 1, -TWO_PI, TWO_PI);
+    this.brushes = calculateInnerCircles(this.c.x, this.c.y, width/6, this.a);
+    
   }
 
   show(){
-    push();
-    translate(this.c.x, this.c.y);
-    rotate(this.a)
+    
     for(let b of this.brushes){
       circle(b.p.x,b.p.y, b.radius*2);
     }
-    pop();
+   
+  }
+
+  getAbsPositions(){
+    let absPositions = [];
+    for(let b of this.brushes){
+      absPositions.push({p: p5.Vector.add(b.p, this.c), radius: b.r});
+    }
+    return absPositions;
   }
 }
 
 
-function calculateInnerCircles(diameter) {
+function calculateInnerCircles(cx, cy, diameter, rotAngle) {
   let positionsAndRadii = [];
   let circleDiameter = diameter;
   let circleRadius = circleDiameter/2;
   
   for (let i = 0; i < 6; i++) {
     let angle = i * TWO_PI / 6;
-    let xPos = cos(angle) * circleRadius;
-    let yPos = sin(angle) * circleRadius;
-    positionsAndRadii[i] = {p: createVector(xPos, yPos), radius: circleRadius/2};
+    let xPos = cos(angle + rotAngle) * circleRadius;
+    let yPos = sin(angle + rotAngle) * circleRadius;
+    positionsAndRadii[i] = {p: createVector(cx + xPos, cy + yPos), radius: circleRadius/3};
   }
-  positionsAndRadii.push({p: createVector(0,0), radius: circleRadius/2});
+  positionsAndRadii.push({p: createVector(cx,cy), radius: circleRadius/3});
   
   return positionsAndRadii;
 }
