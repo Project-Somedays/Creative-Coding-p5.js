@@ -1,7 +1,7 @@
 /*
 Author: Project Somedays
 Date: 2024-05-06
-Title: Experiments - Casey Reas Tribute
+Title: "Overlapdance"
 */
 
 
@@ -9,13 +9,13 @@ Title: Experiments - Casey Reas Tribute
 let r;
 let tests = []
 let n = 5;
-let rate = 0.003;
+let rate = 0.001;
 
 const getVal = (offset, min, max) => map(noise(offset + frameCount*rate), 0, 1, min, max);
 let sclFactor;
 
 
-const maxOpacity = 20;
+const maxOpacity = 10;
 
 let debugMode = false;
 
@@ -23,52 +23,51 @@ let cnv;
 let debug;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  // createCanvas(1080, 1080);
-  cnv = createGraphics(width*2, height*2);
+  // createCanvas(windowWidth, windowHeight);
+  createCanvas(1920, 1080);
+  cnv = createGraphics(width, height);
   debug = createGraphics(cnv.width, cnv.height); // must match cnv
 
-  sclFactor = width/cnv.width;
+  // sclFactor = width/cnv.width;
   debug.noFill();
   imageMode(CENTER);
   
-  r = cnv.width/20;
+  r = random(width/5, width/20);
   for(let i = 0; i < n; i++){
     tests[i] = new CircCollection();
   }
  
   
-  background(0); 
-  
+  background(0);
 }
 
 function draw() {
-  if(debugMode) debug.background(0); 
+  debug.background(0); 
   
   for(let t of tests){
     t.update();
-    if(debugMode) t.show(debug); 
+    t.show(debug); 
   }
 
   if(!debugMode){
     drawOverlap(cnv);
     // image(cnv, width/2, height/2, cnv.width*sclFactor, cnv.height*sclFactor);
-    image(cnv, width/2, height/2, width, height)
+    image(cnv, width/2, height/2)
   }
 
   if(debugMode) {
     drawOverlap(debug);
-    image(debug, width/2, height/2, debug.width*sclFactor, debug.height*sclFactor);
+    image(debug, width/2, height/2);
   }
   
 }
 
 function drawOverlap(layer){
   for(let i = 0; i < tests.length; i++){
-    for(let j = i; j < tests.length; j++){
+    for(let j = 0; j < tests.length; j++){
       // see if we're out of range
       if(i === j) continue;
-      if(p5.Vector.dist(tests[i].c, tests[j].c) > tests[i].r + tests[j].r) continue;
+      if(p5.Vector.dist(tests[i].c, tests[j].c) > tests[i].r*tests[i].spreadR + tests[j].r*tests[j].spreadR) continue;
 
       // if not, go through and check for overlap between any of the brushes
       let brushesA = tests[i].brushes;
@@ -83,8 +82,10 @@ function drawOverlap(layer){
             let strokeCol = int(map(d, 0, brushA.radius + brushB.radius, 255, 0));
             let opacity = int(map(d, 0, brushA.radius + brushB.radius, maxOpacity, 0));
             layer.stroke(strokeCol, opacity);
+          } else{
+            layer.stroke(255);
           }
-          line(brushA.p.x, brushA.p.y, brushB.p.x, brushB.p.y);
+          layer.line(brushA.p.x, brushA.p.y, brushB.p.x, brushB.p.y);
           // showOverlapChord(layer, d, brushA, brushB);
         }
       }
@@ -97,7 +98,7 @@ function showOverlapChord(layer, distBtwCentres, brushA, brushB){
 	let D = brushA.radius + brushB.radius;
   let smaller = brushA.radius >= brushB.radius ? brushA : brushB;
   let larger = brushA.radius >= brushB.radius ? brushB : brushA;
-  let d = distBtwCentres * smaller.radius / D;
+  let d = distBtwCentres * (smaller.radius / D);
 	let aSys = p5.Vector.sub(larger.p, smaller.p).heading(); // get the heading from A to B
 	let a = acos(d/D);
 	layer.push();
@@ -134,4 +135,6 @@ function keyPressed(){
   } else{
     stroke(255, 20);
   }
+
+  console.log(debugMode)
 }
