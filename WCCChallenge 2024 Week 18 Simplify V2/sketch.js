@@ -11,6 +11,8 @@ Building off Dan Shiffman's excellent Inverse Kinematics code: https://www.youtu
 Cleaned up last week's code: https://openprocessing.org/sketch/2253921 and... don't fix what aint broke? Fit the theme!
 Is there some deep metaphor like "what the education system does to young minds who don't fit the mold"? I just think it looks neat.
 
+Sound effect from Pixabay: https://pixabay.com/sound-effects/mechanicalclamp-6217/
+
 Brains trust: how do YOU manage animations with multiple stages? Been experimenting with a couple of different methods, but how SHOULD I be doing it?
 
 Also note: 99% sure I got my easing function backwards to how it usually goes.
@@ -60,7 +62,8 @@ let capturer;
 
 function preload(){
   hand = loadImage("Hand.png");
-  servoSound = loadSound("mechanicalclamp-6217.mp3")
+  servoSound = loadSound("mechanicalclamp-6217.mp3");
+  
 }
 
 
@@ -115,6 +118,8 @@ function draw() {
   if(captureMode && frameCount === 1) capturer.start()
 	
   currentFrame = frameCount%totalFrames; // RESET
+  if(currentFrame === phases.MOVE_IN.cumulativeFrames) servoSound.play(0,1.2,1,0,4);
+  if(currentFrame === phases.SIMPLIFY.cumulativeFrames) servoSound.play(0,1.2,1,0,1.5);
   stroke(255);
 	fill(255);
   // text(`currentFrame: ${currentFrame}, phaseFrames: ${currentPhase.cumulativeFrames}`, width/2, height*0.9)
@@ -151,8 +156,7 @@ function draw() {
 
     // ---------------- ENGAGE ARMS ------------------- //
     case phases.ENGAGE_ARMS:
-      servoSound.stop();
-      servoSound.play();
+      
       engageArmsLerpCntrl += 1/phases.ENGAGE_ARMS.frames;
       t.show();
       let targetArr = [];
@@ -176,8 +180,7 @@ function draw() {
 
      // --------------- DISENGAGE ----------------- //
      case phases.DISENGAGE_ARMS:
-      servoSound.stop();
-      servoSound.play();
+      
       engageArmsLerpCntrl -= 1/phases.ENGAGE_ARMS.frames;
       t.show();
       let disengageTargetArr = [];
