@@ -45,12 +45,12 @@ class Arm {
         }
         if(handMode) {
             let lastArm = this.segments[this.segments.length - 1];
-            let armPivotPt = p5.Vector.lerp(lastArm.a, lastArm.b, 0.5);
+            let armPivotPt = p5.Vector.lerp(lastArm.a, lastArm.b, 0.25);
             let a = p5.Vector.sub(lastArm.b, lastArm.a).heading();
             push();
             translate(armPivotPt.x, armPivotPt.y);
-            rotate(a);
-            image(hand, 0, 0, hand.width*handScaleFactor, hand.height*handScaleFactor);
+            rotate(a-radians(5));
+            image(glove, 0, 0, hand.width*handScaleFactor, hand.height*handScaleFactor);
             pop();
             
         }

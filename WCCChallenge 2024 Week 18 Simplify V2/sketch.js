@@ -62,6 +62,7 @@ let capturer;
 
 function preload(){
   hand = loadImage("Hand.png");
+  glove = loadImage("glove.png");
   servoSound = loadSound("mechanicalclamp-6217.mp3");
   
 }
