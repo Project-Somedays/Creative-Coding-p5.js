@@ -18,7 +18,7 @@ const captureMode = false;
 
 const figureeight  = (x, y, a, t, globA) => createVector(x + a*sin(t), y + a*sin(t)*cos(t)).rotate(globA);
 
-const n = 1;
+const n = 2;
 
 let t;
 let handMode = true;
@@ -114,9 +114,10 @@ function draw() {
 
   if(captureMode && frameCount === 1) capturer.start()
   
-  catInTheHat.trackArmsToPoints([m],0);
+  catInTheHat.update();
+  catInTheHat.trackArmsToPoints(0);
   catInTheHat.show();
-  catInTheHat.trackArmsToPoints([m],1);
+  catInTheHat.trackArmsToPoints([m,m],1);
   
   
 
@@ -142,6 +143,9 @@ function draw() {
 class Car{
   constructor(x,y, carScl, headScl){
     this.p = createVector(x,y);
+    this.currentP = this.p.copy();
+    this.currentRot = 0;
+    this.currentHeadRot = 0;
     this.headScl = headScl;
     this.carScl = carScl;
     this.carWidth = car.width*this.carScl;
@@ -151,38 +155,51 @@ class Car{
     this.arms = [];
     
     // place the arms
-    this.arms[0] = {order: 1, arm: new Arm(this.carWidth*-0.4, this.carHeight*0.1, m)};
-    
+    this.arms[0] = {layer: 1, arm: new Arm(this.carWidth*-0.3, this.carHeight*0.08, createVector(0,this.carHeight*0.3))};
+    this.arms[1] = {layer: 0, arm: new Arm(this.carWidth*0.4, this.carHeight*0.2, createVector(this.carWidth*0.4,this.carHeight*0.2))};
   }
 
-  trackArmsToPoints(targetArr, order){
-    if(targetArr.length !== n) throw Error("Mismatched lengths of arm array and target array");
+  trackArmsToPoints(){
+    // if(targetArr.length !== n) throw Error("Mismatched lengths of arm array and target array");
     push();
     translate(this.p.x, this.p.y);
-    for(let i = 0; i < n; i++){
-      if(this.arms[i].order !== order) continue;
-      this.arms[i].arm.setTarget(figureeight(m.x, m.y, width/5, frameCount * TWO_PI/120, radians(45)));
+    for(let i = 0; i < this.arms.length; i++){
+      this.arms[i].arm.setTarget(figureeight(0, 0, width/5, frameCount * TWO_PI/120, radians(45)));
       this.arms[i].arm.update();
-      this.arms[i].arm.show();
     }
     pop();
+  }
+
+  update(){
+    this.currentP.y = this.p.y + map(noise(frameCount/25),0,1,-height/50, height/50);
+    this.currentRot =  map(noise(frameCount/50),0,1,0, PI/50);
+    this.secRot = map(noise(1000 + frameCount/100),0,1,-PI/12, PI/12);
+  }
+
+  showArms(layer){
+    let currentArms = this.arms.filter(a => a.layer === layer);
+    for(let a of currentArms){
+      a.arm.show();
+    }
   }
  
 
   show(){
     push();
-    translate(this.p.x, this.p.y);
+    translate(this.currentP.x, this.currentP.y);
     
-    let bumps = 0//map(noise(frameCount/25),0,1,-height/50, height/50);
-    let rot =  0//map(noise(frameCount/50),0,1,0, PI/50);
-    let secRot = 0// map(noise(1000 + frameCount/100),0,1,-PI/12, PI/12);
-    rotate(rot);
+    
+    rotate(this.currentRot);
     push();
-    translate(-this.carWidth*.08, bumps - this.carHeight/4);
-    rotate(secRot);
+    translate(-this.carWidth*.08, - this.carHeight/4); // locate the head
+    rotate(this.secRot); // draw rthe head
     image(head, 0, 0, this.headWidth, this.headHeight);
+    
     pop();
-    image(car, 0, bumps, this.carWidth, this.carHeight);
+    this.showArms(0);
+    image(car, 0, 0, this.carWidth, this.carHeight);
+    
+    this.showArms(1);
     pop();
   }
 }

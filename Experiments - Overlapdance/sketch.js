@@ -26,24 +26,30 @@ let palettes = [
 
 let randPalette;
 
+const OVERLAPMODES = {
+  CENTRES : "phases",
+  CHORDS: "chords"
+}
 
+const n = 5;
+const rate = 0.001;
+const substeps = 1;
+const getVal = (offset, min, max) => map(noise(offset + frameCount*rate), 0, 1, min, max);
 
 let r;
 let tests = []
-let n = 5;
-let rate = 0.001;
-let substeps = 1;
 
-const getVal = (offset, min, max) => map(noise(offset + frameCount*rate), 0, 1, min, max);
 let sclFactor;
 
 
 const maxOpacity = 10;
 
-let debugMode = false;
+let debugMode = true;
 
 let cnv;
+let cnv2;
 let debug;
+let debug2;
 
 function setup() {
   // createCanvas(windowWidth, windowHeight);
@@ -53,13 +59,19 @@ function setup() {
 
   randPalette = random(palettes);
   cnv = createGraphics(width, height);
+  cnv2 = createGraphics(cnv.width, cnv.height);
   debug = createGraphics(cnv.width, cnv.height); // must match cnv
+  debug2 = createGraphics(cnv.width, cnv.height);
 
-  // sclFactor = width/cnv.width;
+  sclFactor = height/cnv.width;
   debug.noFill();
+  debug2.noFill();
   imageMode(CENTER);
   
-  r = random(width/50, width/10);
+  
+  r = random(width/50, width/15);
+
+
   for(let i = 0; i < n; i++){
     tests[i] = new CircCollection();
   }
@@ -73,29 +85,59 @@ function setup() {
 function draw() {
 
   for(let i = 0; i < substeps; i++){
-    debug.background(0); 
-  
-  for(let t of tests){
-    t.update();
-    t.show(debug); 
+    debug.background(0);
+    debug2.background(0);
+    debug.stroke(255);
+    debug2.stroke(255);
+    debug.strokeWeight(1);
+    debug2.strokeWeight(1);
+    for(let t of tests){
+      t.update();
+      t.show(debug);
+      t.show(debug2); 
+    }
+
+    drawOverlap(cnv,OVERLAPMODES.CENTRES,true);
+    drawOverlap(cnv2,OVERLAPMODES.CHORDS,true);
+    debug.strokeWeight(5);
+    debug2.strokeWeight(5);
+    drawOverlap(debug,OVERLAPMODES.CENTRES,false);
+    drawOverlap(debug2,OVERLAPMODES.CHORDS,false);
   }
 
-  if(!debugMode){
-    drawOverlap(cnv);
-    // image(cnv, width/2, height/2, cnv.width*sclFactor, cnv.height*sclFactor);
-    image(cnv, width/2, height/2)
-  }
+  // if(debugMode){
+  //   image(debug, width/2, height/2);
+  // } else{
+  //   image(cnv, width/2, height/2);
+  // }
+  push();
+  translate(width*0.2, height/2);
+  rotate(-HALF_PI);
+  image(cnv, 0, 0, cnv.width*sclFactor, cnv.height*sclFactor*1.25);
+  pop();
 
-  if(debugMode) {
-    drawOverlap(debug);
-    image(debug, width/2, height/2);
-  }
-  }
+  push();
+  translate(width/2, height/4);
+  rotate(-HALF_PI);
+  image(debug, 0, 0, debug.width*sclFactor*0.5, debug.height*sclFactor*0.5);
+  pop();
+
+  push();
+  translate(width/2, 3*height/4);
+  rotate(-HALF_PI);
+  image(debug2, 0, 0, debug2.width*sclFactor*0.5, debug2.height*sclFactor*0.5);
+  pop();
+
   
   
+  push();
+  translate(width*0.8, height/2);
+  rotate(-HALF_PI);
+  image(cnv2, 0, 0, cnv.width*sclFactor, cnv.height*sclFactor*1.25);
+  pop();
 }
 
-function drawOverlap(layer){
+function drawOverlap(layer, mode, opacityMode){
   for(let i = 0; i < tests.length; i++){
     for(let j = 0; j < tests.length; j++){
       // see if we're out of range
@@ -111,17 +153,21 @@ function drawOverlap(layer){
           let brushB = brushesB[b];
           let d = p5.Vector.dist(brushA.p, brushB.p)
           if(d > brushA.r + brushB.r) continue;
-          if(!debugMode){
-            let stroke = brushA.r > brushB.r ? brushA.colour : brushB.colour;
-            let opacity = int(map(d, 0, brushA.r + brushB.r, maxOpacity, 0));
-            layer.stroke(hexToRgbWithOpacity(stroke, opacity));
+          
+          let strokeCol = brushA.r > brushB.r ? brushA.colour : brushB.colour;
+          let opacity = int(map(d, 0, brushA.r + brushB.r, maxOpacity, 0));
+          
+          if(opacityMode) {
+            layer.stroke(hexToRgbWithOpacity(strokeCol, opacity));
           } else{
-            layer.stroke(255);
+            layer.stroke(strokeCol);
           }
-          drawChordOfPointsOfIntersection(layer, brushA, brushB)
-          // layer.line(brushA.p.x, brushA.p.y, brushB.p.x, brushB.p.y);
-
-          // showOverlapChord(layer, d, brushA, brushB);
+      
+          if(mode === OVERLAPMODES.CHORDS){
+            drawChordOfPointsOfIntersection(layer, brushA, brushB)
+          } else{
+            layer.line(brushA.p.x, brushA.p.y, brushB.p.x, brushB.p.y);
+          }
         }
       }
     }
