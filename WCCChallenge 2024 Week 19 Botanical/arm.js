@@ -5,11 +5,12 @@
 // Tanscription to Javascript: Chuck England
 
 class Arm {
-    constructor(x, y, basePos) {
+    constructor(x, y, baseX, baseY) {
         this.segments = [];
-        this.basePos = createVector(basePos.x, basePos.y)   ;
+        this.basePos = createVector(baseX, baseY);
         this.base = createVector(x, y);
         this.len = maxLength;
+        this.cycleOffset = random(1000);
         this.segments[0] = new Segment(300, 200, this.len, 0);
         for (let i = 1; i < armSegments; i++) {
             this.segments[i] = new Segment(this.segments[i - 1], this.len, i);
@@ -54,8 +55,18 @@ class Arm {
     }
 
     show() {
-        this.showArm(color(0), width/50);
-        this.showArm("#1f6cfe",width/80);
+
+        if(legacyArmMode){
+            for(let seg of this.segments){
+                seg.show();
+            }
+        } else {
+            this.showArm(color(0), yardstick/50);
+            this.showArm("#1f6cfe",yardstick/80);
+        }
+
+
+        
         
         
 

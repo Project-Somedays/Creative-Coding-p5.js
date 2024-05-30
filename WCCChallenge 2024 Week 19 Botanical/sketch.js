@@ -8,37 +8,47 @@ Join The Birb's Nest Discord community! https://discord.gg/S8c7qcjw2b
 
 Building off Dan Shiffman's excellent Inverse Kinematics code: https://www.youtube.com/watch?v=hbgDqyy8bIw
 
-Someone mentioned in the stream last week something along the lines of "let's see how the arms are shoe-horned into this next week's topic...". Challenge accepted.
+Someone mentioned in the stream last week something along the lines of "let's see how the arms are shoe-horned into this next week's topic..." Challenge accepted, sir or madam. Hahahaa.
 
-Took the opportunity to learn how to draw splines to get the wibbly-wobbly arms. Kind of hacked my way through though...
+Took the opportunity to learn how to draw splines to get the wibbly-wobbly arms. Ended up kind of hacking my way through though...
+
+WIP! Very much ran out of time. More to be done here:
+- Lots of cleanup
+- Secondary motion on the child
+- Secondary motion on the bag of seeds
+- Water coming out of the watering can
+- Wheels turning
+- Making a click-based rigging system? At the moment, it's very hacky. 
+- Cleaning up the vehicle
+
 
 */
 
-const captureMode = false;
 
+// -------------- ARMS BIZ ---------------//
 const figureeight  = (x, y, a, t, globA) => createVector(x + a*sin(t), y + a*sin(t)*cos(t)).rotate(globA);
-
-const n = 2;
-
-let t;
 let handMode = true;
+let legacyArmMode = false;
 let arm;
 let maxLength;
-const armSegments = 6;
+const armSegments = 5;
 let arms = [];
-let startP, endP, restP;
+const armCycleFrames = 120;
 
-
-let phases = {
-  MOVE_IN :       {phaseName: "MOVE_IN",        frames: 30},
-  ENGAGE_ARMS:    {phaseName: "ENGAGE_ARMS",    frames: 30},
-  SIMPLIFY:       {phaseName: "SIMPLIFY",       frames: 60},
-  DISENGAGE_ARMS: {phaseName: "DISENGAGE_ARMS", frames: 30},
-  MOVE_OUT:       {phaseName: "MOVE_OUT",       frames: 30}
-}
-let avR;
-
-let phaseOrder; 
+// --------------- FLOWERS -------------------//
+let f1, f2, f3, f4, f5, f6, f7, f8;
+let flowerScale;
+let flowerImages = [];
+let flowers = [];
+const flowerLifeFrames = 300;
+const flowerSpawnProbability = 0.6;
+const flowerDeathThreshold = 50;
+const flowerLerpSpeed = 1/30;
+const flowerPropofScreen = 0.02;
+const flowerPossibleSpawnPerFrame = 20;
+const flowerSpeed = 5;
+const easeInOutQuad = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; // https://easings.net/#easeInOutCubic
+let flowerDir;
 
 // --------------- PUPPETS ------------------ //
 let car; 
@@ -48,48 +58,48 @@ let gloveSclFactor;
 let carSclFactor;
 let headSclFactor;
 let catInTheHat;
-
-// ---------- CONTROL -------------//
-let moveShapeLerpCntrl = 0;
-let engageArmsLerpCntrl = 0;
-let simplifyLerpCntrl = 0;
-let currentFrame = 0;
-let currentPhase;
-let totalFrames;
-
-
-
 let handSize;
+let yardstick;
 
 
 // ---------- RECORDING BIZ ------------- //
 const fps = 30;
 let capturer;
 let m;
-
-
+const captureMode = false;
 
 function preload(){
   glove = loadImage("glove.png");
   head = loadImage("Head.png");
-  car = loadImage("Vehicle.png"); 
+  car = loadImage("Vehicle.png");
+  f1 = loadImage("f1@2x.png");
+  f2 = loadImage("f2@2x.png");
+  f3 = loadImage("f3@2x.png");
+  f4 = loadImage("f4@2x.png");
+  f5 = loadImage("f5@2x.png");
+  f6 = loadImage("f6@2x.png");
+  f7 = loadImage("f7@2x.png");
+  f8 = loadImage("f8@2x.png");
 }
 
 
 function setup() {
-  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(windowWidth, windowHeight);
    createCanvas(1080, 1080);
+
+  yardstick = min(width, height);
 
   imageMode(CENTER);
   noFill();
   stroke(255);
 
+  
   maxLength = width/10;
-  gloveSclFactor = 0.1*width/glove.width;
-  carSclFactor = 0.5*width/car.width;
-  headSclFactor = 0.5*width/head.width;
+  gloveSclFactor = 0.1*yardstick/glove.width;
+  carSclFactor = 0.5*yardstick/car.width;
+  headSclFactor = 0.5*yardstick/head.width;
   m = createVector(mouseX, mouseY);
-  catInTheHat = new Car(width/2, height/2, carSclFactor, headSclFactor);
+  catInTheHat = new Car(width*0.45, height*0.5, carSclFactor, headSclFactor);
 
   capturer = new CCapture({
     format: 'png',
@@ -98,14 +108,17 @@ function setup() {
 
  
 
-	describe("The Cat in the Hat Mobile moves around the canvas planting seeds as it goes");
+	describe("The Cat in the Hat handy car planting flowers as it bumps along. It's unclear whether the kid is ok with being there or not.");
 	
   stroke("#1f6cfe");
   strokeWeight(10);
+
+  // ---------- FLOWER BIZ ------------//
+  flowerDir = p5.Vector.sub(createVector(0,0), createVector(width/2, height*0.15)).setMag(flowerSpeed);
+  flowerScale = flowerPropofScreen*yardstick/f1.width; // scale to 5% of the width of the image;
+  flowerImages = [f1, f2, f3, f4, f5, f6, f7, f8];
   
-
-
-
+  
 	
 }
 
@@ -114,19 +127,29 @@ function draw() {
 
   if(captureMode && frameCount === 1) capturer.start()
   
-  catInTheHat.update();
-  catInTheHat.trackArmsToPoints(0);
-  catInTheHat.show();
-  catInTheHat.trackArmsToPoints([m,m],1);
+  
   
   
 
   m.set(mouseX-width/2, mouseY-height/2);
   // trackArmsToPoints([m]);
 
+  // updating flowers
+  for(let f of flowers){  
+    f.update();
+    f.show();
+  }
+  cleanUpDeadFlowers();
   
 
-	
+  catInTheHat.update();
+  catInTheHat.trackArmsToPoints(0);
+  catInTheHat.show();
+  catInTheHat.trackArmsToPoints([m,m],1);
+
+
+  
+
 
   if (captureMode && frameCount > 5*totalFrames) {
     noLoop();
@@ -139,99 +162,23 @@ function draw() {
   if(captureMode) capturer.capture(document.getElementById('defaultCanvas0'));
 }
 
-
-class Car{
-  constructor(x,y, carScl, headScl){
-    this.p = createVector(x,y);
-    this.currentP = this.p.copy();
-    this.currentRot = 0;
-    this.currentHeadRot = 0;
-    this.headScl = headScl;
-    this.carScl = carScl;
-    this.carWidth = car.width*this.carScl;
-    this.carHeight = car.height*this.carScl;
-    this.headWidth = head.width*this.headScl;
-    this.headHeight = head.height*this.headScl;
-    this.arms = [];
-    
-    // place the arms
-    this.arms[0] = {layer: 1, arm: new Arm(this.carWidth*-0.3, this.carHeight*0.08, createVector(0,this.carHeight*0.3))};
-    this.arms[1] = {layer: 0, arm: new Arm(this.carWidth*0.4, this.carHeight*0.2, createVector(this.carWidth*0.4,this.carHeight*0.2))};
-  }
-
-  trackArmsToPoints(){
-    // if(targetArr.length !== n) throw Error("Mismatched lengths of arm array and target array");
-    push();
-    translate(this.p.x, this.p.y);
-    for(let i = 0; i < this.arms.length; i++){
-      this.arms[i].arm.setTarget(figureeight(0, 0, width/5, frameCount * TWO_PI/120, radians(45)));
-      this.arms[i].arm.update();
+function spawnFlowers(x,y, layer){
+  for(let i = 0; i < flowerPossibleSpawnPerFrame; i++){
+    if(random(1) >= flowerSpawnProbability){
+      continue;
     }
-    pop();
-  }
-
-  update(){
-    this.currentP.y = this.p.y + map(noise(frameCount/25),0,1,-height/50, height/50);
-    this.currentRot =  map(noise(frameCount/50),0,1,0, PI/50);
-    this.secRot = map(noise(1000 + frameCount/100),0,1,-PI/12, PI/12);
-  }
-
-  showArms(layer){
-    let currentArms = this.arms.filter(a => a.layer === layer);
-    for(let a of currentArms){
-      a.arm.show();
-    }
-  }
- 
-
-  show(){
-    push();
-    translate(this.currentP.x, this.currentP.y);
-    
-    
-    rotate(this.currentRot);
-    push();
-    translate(-this.carWidth*.08, - this.carHeight/4); // locate the head
-    rotate(this.secRot); // draw rthe head
-    image(head, 0, 0, this.headWidth, this.headHeight);
-    
-    pop();
-    this.showArms(0);
-    image(car, 0, 0, this.carWidth, this.carHeight);
-    
-    this.showArms(1);
-    pop();
+    let img = random(flowerImages);
+    let rPerm = randomGaussian()*width/30;
+    let a = random(TAU);
+    flowers.push(new Flower(x + rPerm*cos(a),y + rPerm*sin(a), img, layer));
   }
 }
 
-
-
-  // ------------------- RETARGET ALL ARMS --------------------- //
-
-  
-
-
-// ----------- WHICH PHASE WE IN? --------------- //
-function getCurrentPhase(currentFrame){
-  // gets the smallest phase greater than currentFrame
-  let cumulativeFrames = phaseOrder.map(e => e.cumulativeFrames);
-  for(let i = 0; i < cumulativeFrames.length; i++){
-    if(currentFrame < cumulativeFrames[i]) return phaseOrder[i];
+function cleanUpDeadFlowers(){
+  // remove dead flowers from flowers
+  for(let i = flowers.length - 1; i >= 0; i --){
+    if(flowers[i].isDead) flowers.splice(i,1);
   }
-}
-
-// ----------- GET CUMULATIVE FRAMES --------------- //
-function calculateCumulativeFrames(phaseOrder){
-  for(let i = 0; i < phaseOrder.length; i++){
-    // console.log
-    let frameArray = phaseOrder.map(e => e.frames).slice(0,i+1);
-    let total = frameArray.length > 0 ? frameArray.reduce((a,b) => a + b) : phaseOrder[0].frames;
-    
-    phaseOrder[i]["cumulativeFrames"] = total;
-    // console.log(`frameArray: ${frameArray}, total: ${total}`);
-    // phaseOrder[i]["cumulativeFrames"] = phaseOrder.slice(0,i).reduce((accumulator, currentValue) => a + b.frames);
-  }
-  // console.log(phaseOrder);
 }
 
 
@@ -241,5 +188,14 @@ function easeInOutSine(x) {
   }
 
 function keyPressed(){
-  if(key === ' ') handMode = !handMode;
+  if(key === ' ') legacyArmMode = !legacyArmMode;
+}
+
+function mousePressed(){
+  if(mouseButton === LEFT){
+    spawnFlowers(mouseX, mouseY);
+ 
+  }
+
+  
 }
