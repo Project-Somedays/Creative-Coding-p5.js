@@ -28,6 +28,11 @@ class Sushi{
     //     fill(255);
     //     circle(this.p.x, this.p.y, width/10);
     //   }
-      image(this.sushiImg, this.p.x, this.p.y + 0.0125*height*sin(frameCount*TWO_PI/sushiCycleFrames+this.offset));
+      image(this.sushiImg, 
+        this.p.x, 
+        this.p.y + 0.0125*height*sin(frameCount*TWO_PI/sushiCycleFrames+this.offset), 
+        this.sushiImg.width*sushiScale, 
+        this.sushiImg.height*sushiScale
+      );
     }
   }

@@ -43,10 +43,12 @@ class Arm {
     showArm(strokeColBase, strokeColTop){
         for(let i = 0; i < this.segments.length; i++){
             let strokeWeightVal = map(i, 0, this.segments.length, yardstick/10,yardstick/80);
-            stroke(strokeColBase);
-            strokeWeight(strokeWeightVal*1.2);
             let start = this.segments[i].a;
             let end = this.segments[i].b;
+            stroke(strokeColBase);
+            strokeWeight(strokeWeightVal*1.1);
+            line(start.x, start.y, end.x, end.y);
+        
             stroke(strokeColTop);
             strokeWeight(strokeWeightVal);
             line(start.x, start.y, end.x, end.y);
@@ -70,6 +72,7 @@ class Arm {
             }
         } else {
             this.showArm('#37257e', '#5D3FD3');
+            // this.showArm(color(0), '#5D3FD3');
         }
 
 

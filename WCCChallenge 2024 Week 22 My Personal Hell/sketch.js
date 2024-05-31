@@ -8,8 +8,11 @@ Join The Birb's Nest Discord community! https://discord.gg/S8c7qcjw2b
 
 I don't know about anyone else, but I find Sushi trains really stressful. This game captures that experience. My highest score is 20 with a increase difficulty rate of 10%. Good luck!
 
+First time experimenting with asynchronous loading of assets
+
 ############# RESOURCES #################
 Inverse Kinematics code adapted from our Lord and Saviour Daniel Shiffman's work: https://www.youtube.com/watch?v=hbgDqyy8bIw
+Loading animation tutorial, again from Mr Shiffman: https://www.youtube.com/watch?v=UWgDKtvnjIU
 Sumo Art from Night Cafe: https://creator.nightcafe.studio/creation/faiwEmZzCBblpxrKSPcX?ru=projectsomedays
 Sushi Art from Freepik: https://www.freepik.com/free-vector/hand-drawn-kawaii-sushi-collection_4097571.htm#fromView=search&page=1&position=11&uuid=41d4e717-b9ad-47d1-b877-a5ad3dfe0a19
 Music: "Japanese Battle" by https://pixabay.com/music/adventure-japanese-battle-164989/
@@ -27,9 +30,13 @@ DONE: Music
 DONE: Game Over
 DONE: Make Screen Responsive
 DONE: Robot Arm - grabber
-TODO: Loading Screen
-TODO: Robot Arm - flamethrower
-TODO: FOMO/Anger meter
+DONE: Loading Screen
+TODO: Robot Arm - flamethrower to scorch away mistakes
+TODO: FOMO/Anger meter for correct food moving
+TODO: Animate the Sumo
+TODO: Fix my photoshop work with his upper lip
+TODO: Implement determining if on mobile or not: https://editor.p5js.org/ronikaufman/sketches/yaVtDVBK5
+TODO: Use touchMoved() ?? to make it work with mobile
 
 */
 
@@ -40,6 +47,7 @@ let cnv;
 let yardstick;
 let handScale;
 let sumoScale;
+let sushiScale;
 
 // ---------- SUMO ---------- //
 let sumo;
@@ -92,47 +100,43 @@ let chances = 5;
 let burnedImg;
 const increaseDifficultyRate = 1.1;
 
+// -------- LOADING -------------//
+let isLoading = true;
+let counter = 0;
+const startFrame = 180;
+
 // #################### PRELOAD ####################### //
 
 function preload(){
-  // images
-  sumoOpen = loadImage("images/SumoOpen.png");
-  sumoClosed = loadImage("images/SumoClosed.png");
-  for(let i = 0; i < 9; i++){ sushi.push(loadImage(`images/Sushi${i+1}.png`)); }
-  for(let i = 0; i < 6; i++){ flames.push(loadImage(`images/Fire${i+1}.png`)); }
-  burnedImg = loadImage("images/Burned.png");
-  flamethrower = loadImage("images/flamethrower.png");
-  music = loadSound("sounds/japanese-battle-164989.mp3");
-  hand = loadImage("images/Hand.png");
-  
-  // sounds
-  soundsCollectPoints = loadSound("sounds/collect-points-190037.mp3")
-  soundsEating = loadSound("sounds/eating-sound-effect-36186.mp3");
-  soundsWrong = loadSound("sounds/wrong-buzzer-6268.mp3");
-  soundsFlamethrower = loadSound("sounds/084303_hq-flamethrower-87072.mp3");
-  
-  // font
-  font = loadFont("Almost Japanese Comic.ttf");
+  music = loadSound("sounds/japanese-battle-164989.mp3", loadingCallback);
 }
 
+function loadingCallback(){
+  counter ++;
+  if(counter > 25){
+    isLoading = false;
+    console.log("All done loading all the things!");
+    makeAllTheBiz(); // only call this when we're sure all the assets are good 
+  }
+}
 
-// #################### SETUP ####################### //
+function setGameText(){
+  textSize(height/10);
+  textFont(font);
+  textLeading(height/15);
+  // console.log("Set the text things")
+}
 
-
-function setup() {
-  describe("Our sumo friend is hungry! Use the tentacle to feed him what he wants but be warned! You touch it, you buy it! 5 strikes and you're out.");
-  // createCanvas(1080, 1080);
-  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
-  imageMode(CENTER);
-  noCursor();
-
+function makeAllTheBiz(){
   cnv = createGraphics(width, height);
   
 
   // ----- SCALING ----- ///
   yardstick = min(width, height);
   handScale = (0.15*yardstick)/hand.width;
-  sumoScale = width/sumoOpen.width;
+  console.log(sumoOpen.width);
+  sumoScale = yardstick / sumoOpen.width;
+  sushiScale = 0.1*yardstick/sushi[0].width;
 
   // ----- SUSHI ------ //
   sushiTrainHeight = 0.5*height;
@@ -140,9 +144,7 @@ function setup() {
   
   // ------ SUMO ------- //
   sumo = new Sumo(width/2, height/2);
-  mouth = createVector(sumoOpen.height)
   
-
   // ----- ARMS ----- //
   m = createVector(mouseX, mouseY);
   maxLength = height*0.75/armSegments;
@@ -154,13 +156,14 @@ function setup() {
   // ------- THOUGHT BUBBLE --------- //
   thoughtBubbleP = createVector(width*0.1, height*0.1);
   thoughtBubble = new ThoughtBubble(thoughtBubbleP.x, thoughtBubbleP.y, 0.25*width, 0.25*height, 30);
+  console.log("Loaded thoughtbubble");
   
 
   // ----- TEXT -------- //
-  textAlign(CENTER, CENTER);
-  textSize(height/10);
-  textFont(font);
-  textLeading(height/15);
+  // textAlign(CENTER, CENTER);
+  // textSize(height/10);
+  // textFont(font);
+  // textLeading(height/15);
 
   // ------- START ------- //
   music.loop();
@@ -168,10 +171,55 @@ function setup() {
   getNewTargetSushi();
 }
 
+
+
+// #################### SETUP ####################### //
+
+function setup() {
+  console.log("Starting setup");
+  pixelDensity(1);
+  createCanvas(1080, 1080);
+  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(windowWidth, windowHeight);
+  console.log("created canvas");
+  imageMode(CENTER);
+  noCursor();
+  describe("Our sumo friend is hungry! Use the tentacle to feed him what he wants but be warned! You touch it, you buy it! 5 strikes and you're out.");
+
+  // font
+  font = loadFont("Almost Japanese Comic.ttf", loadingCallback);
+  textAlign(CENTER, CENTER);
+
+  // images
+  sumoOpen = loadImage("images/SumoOpen.png", loadingCallback);
+  sumoClosed = loadImage("images/SumoClosed.png", loadingCallback);
+  console.log("loaded sumo images");
+  for(let i = 0; i < 9; i++){ sushi.push(loadImage(`images/Sushi${i+1}.png`, loadingCallback)); }
+  for(let i = 0; i < 6; i++){ flames.push(loadImage(`images/Fire${i+1}.png`, loadingCallback)); }
+  burnedImg = loadImage("images/Burned.png", loadingCallback);
+  flamethrower = loadImage("images/flamethrower.png", loadingCallback);
+  
+  hand = loadImage("images/Hand.png", loadingCallback);
+  
+  
+  // sounds
+  soundsCollectPoints = loadSound("sounds/collect-points-190037.mp3", loadingCallback)
+  soundsEating = loadSound("sounds/eating-sound-effect-36186.mp3", loadingCallback);
+  soundsWrong = loadSound("sounds/wrong-buzzer-6268.mp3", loadingCallback);
+  soundsFlamethrower = loadSound("sounds/084303_hq-flamethrower-87072.mp3", loadingCallback);
+  
+}
+
 // #################### DRAW ####################### //
 
 function draw() {
   background(0);
+  setGameText();
+  
+  if(isLoading || frameCount < startFrame){
+    drawLoadingScreen();
+    return;
+  }
 
   m.set(mouseX, mouseY);
   cnv.fill(0);
@@ -196,7 +244,7 @@ function draw() {
     s.show();
   }
 
-  if(frameCount%newSushiFrame === 0){
+  if(frameCount%newSushiFrame === 0 && frameCount > startFrame){
     sushiTrain.push(new Sushi(random(sushi)));
   }
 
@@ -240,6 +288,32 @@ function updateExtraArms(){
   }
 }
 
+function drawLoadingScreen(){
+  background(0);
+  stroke(255);
+  fill(255);
+  textFont('Courier');
+  textSize(height/25);
+  text(`Pop the sushi into the Sumo's mouth.\n Give him only what he wants.\nWarning: you touch it, you buy it.\n5 strikes and you're out!`, width/2, height/2);
+  
+  // draw animation
+	strokeWeight(4);
+	push()
+	translate(width / 2, height * 0.75);
+		for(let i = 0; i < 8; i++){
+			let a = frameCount*TWO_PI/300 + i*TWO_PI/8;
+			rotate(a);
+      circle(yardstick*0.05, 0, (0.5*(cos(a)+1.1))*height/50);
+		}
+  pop();
+
+
+  noFill();
+  rect(width*0.1, height*0.85, width*0.8, height*0.1);
+  fill(255);
+  rect(width*0.1, height*0.85, width*0.8*counter/26, height*0.1);
+}
+
 function gameOverScreen(){
   background(0);
   textSize(height/6);
@@ -253,7 +327,7 @@ function gameOverScreen(){
 function mousePressed(){
   if(mouseButton === LEFT){
     for(let s of sushiTrain){
-      if(p5.Vector.dist(s.p, m) < width*0.05){
+      if(p5.Vector.dist(s.p, m) < yardstick*0.05){
         s.isSelected = true;
       }
     }
