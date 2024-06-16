@@ -21,6 +21,8 @@ let lSide =[];
 let rSide =[];
 let maxDiff;
 const noiseZoom = 300;
+let handMode = false
+let bubbleMode = false;
 
 let bubbles = [];
 
@@ -29,18 +31,23 @@ let bgflock;
 
 let bubbleAscendRate = 2;
 
+let hamsterPos;
+let maxLength;
+let armSegments;
 
 
 let hamster;
+let hamsterImg;
 let hamsterScl;
 
 function preload(){
-  hamster = loadImage("hamster.png");
+  hamsterImg = loadImage("hamster.png");
 }
 
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  createCanvas(1080,1920);
   maxDiff = 0.2*width;
   for(let i = 0; i < height; i++){
     lSide[i] = map(noise(0.2*width/noiseZoom, i/noiseZoom, frameCount/noiseZoom),0,1,-maxDiff,maxDiff);
@@ -50,7 +57,12 @@ function setup() {
   imageMode(CENTER);
   noFill();
 
-  hamsterScl = 0.5*width/hamster.width;
+  armSegments = 3;
+  maxLength = width/6;
+
+  hamsterScl = 0.5*width/hamsterImg.width;
+
+  hamster = new Hamster(0,0);
 
   fgflock = new Flock();
   for (let i = 0; i < 25; i++) {
@@ -66,18 +78,49 @@ function setup() {
  
 }
 
+
+
 function draw() {
   // background('#141e38');
   background(0);
-
+  
   // update the biz
+  updateSides();
+
+  // show the biz
+  showSides();
+
+  bgflock.run();
+
+  hamster.update();
+  hamster.show();
+
+  fgflock.run();
+}
+
+function updateSides(){
   lSide.splice(0,1);
   lSide.push(map(noise(0.25*width/noiseZoom, height/noiseZoom, frameCount/noiseZoom),0,1,-maxDiff,maxDiff));
   rSide.splice(0,1);
   rSide.push(map(noise(0.75*width/noiseZoom, height/noiseZoom, frameCount/noiseZoom),0,1,-maxDiff,maxDiff));
+}
 
+function showSides(){
+  beginShape();
+  for(let i = 0; i < height; i++){
+    vertex(width*0.1 + lSide[i], i);
+  }
+  endShape();
+  beginShape();
+  for(let i = 0; i < height; i++){
+    vertex(width*0.9 + rSide[i], i);
+  }
+  endShape();
+}
+
+function updateAndShowBubble(){
   if(random(1) < 0.025){
-    bubbles.push({p: createVector(width/2, height/2 - hamster.height*hamsterScl/2), d: random(width/100, width/50)});
+    bubbles.push({p: createVector(width/2, height/2 - hamsterImg.height*hamsterScl/2), d: random(width/100, width/50)});
   }
 
   for(let b of bubbles){
@@ -90,22 +133,4 @@ function draw() {
   for(i = bubbles.length - 1; i >= 0; i--){
     if(bubbles[i].p.y < -0.1*height) bubbles.splice(i,1);
   }
-
-  // show the biz
-  beginShape();
-  for(let i = 0; i < height; i++){
-    vertex(width*0.1 + lSide[i], i);
-  }
-  endShape();
-  beginShape();
-  for(let i = 0; i < height; i++){
-    vertex(width*0.9 + rSide[i], i);
-  }
-  endShape();
-
-  bgflock.run();
-
-  image(hamster, width/2, height/2, hamster.width*hamsterScl, hamster.height*hamsterScl);
-
-  bgflock.run();
 }
