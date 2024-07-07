@@ -59,7 +59,8 @@ function preload(){
 }
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  createCanvas(1080,1080);
   
   cnv = createGraphics(width, height);
 	cnv.noStroke();
@@ -80,7 +81,7 @@ function setup() {
     movers.push(new Mover((i+0.5)*width/bins, height, finalColourPalette[i], i*TWO_PI/bins));
   }
 
-  music.loop();
+  music.play();
   // console.log(movers);
 
   imageMode(CENTER);

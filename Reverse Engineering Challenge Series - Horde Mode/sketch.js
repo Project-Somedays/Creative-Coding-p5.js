@@ -1,106 +1,69 @@
 let bullets = [];
 let player;
 let pistolFlintLock;
-
+let enemies = [];
+let powerups = [];
+let startWave = 10;
+let debugMode = true;
 function setup() {
-  createCanvas(min(windowWidth,windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(min(windowWidth,windowHeight), min(windowWidth, windowHeight));
+  
   frameRate(30);
-  pistolFlintLock = new Gun("Flintlock Pistol", 60, 0, windowHeight/75);
+  pistolFlintLock = new Gun("Flintlock Pistol", 60, 0, windowHeight/50, 1);
   player = new Player(pistolFlintLock);
+  for(let i = 0; i < startWave; i++){
+    let x = (i + 0.5)*width/startWave;
+    let y = height/10;
+    enemies.push(new Enemy(x,y, 50, 1, 5, width/5));
+  }
 }
 
 function draw() {
   background(0);
   player.update()
   player.show();
-  
-  handleBullets();
+ 
+  handleBullets(enemies);
+  handleHittables(enemies);
 
+  if(!debugMode) return;
+  fill(255);
+  text(`Bullets: ${bullets.length}`,0,height/100);
+  text(`Enemies: ${enemies.length}`,0,height/100+textSize());
+  text(`Health: ${player.health}`,0,height/100+2*textSize());
   
-  
-  
-
 }
 
-function handleBullets(){
+function progressEnemies(){
+  for(let e of enemies){
+    e.update();
+    e.show();
+  }
+}
+
+function registerHit(a, b, threshold){
+  return p5.Vector.dist(a,b) <= threshold;
+}
+
+function handleHittables(hittableEntities){
+  for(let i = hittableEntities.length - 1; i >= 0; i--){
+    hittableEntities[i].update();
+    hittableEntities[i].seek(player.p);
+    hittableEntities[i].show();
+    if(hittableEntities[i].isDead) enemies.splice(i,1);
+  }
+}
+
+function handleBullets(hittableEntities){
   for(let i = bullets.length - 1; i >= 0; i--){
     bullets[i].update();
+    for(let hittable of hittableEntities){
+      if(registerHit(bullets[i].p, hittable.p, hittable.r)){
+        hittable.damage(bullets[i].damage);
+        bullets[i].registerHit();
+      } 
+    }
     bullets[i].show();
     if(bullets[i].isSpent) bullets.splice(i,1);
   }
-}
-
-
-
-class Bullet{
-  constructor(x,y,dir,bulletSpeed){
-    this.p = createVector(x,y);
-    this.dir = createVector(dir.x, dir.y).setMag(bulletSpeed);
-    this.isSpent = false;
-  }
-  update(){
-    this.p.add(this.dir);
-    if(this.p.x < 0 || this.p.x > width || this.p.y < 0) this.isSpent = true;
-  }
-
-  show(){
-    fill(255);
-    circle(this.p.x, this.p.y, width/50);
-  }
-
-
-}
-
-class Gun{
-  constructor(name, fireRate, spread, bulletSpeed){
-    this.name = name;
-    this.fireRate = fireRate;
-    this.spread = spread;
-    this.bulletSpeed = bulletSpeed;
-  }
-
-  fire(x, y){
-    if(frameCount % this.fireRate === 0){
-      let dir = p5.Vector.fromAngle(random(-this.spread/2, this.spread/2) - HALF_PI) ;
-      let bullet = new Bullet(x,y, dir, this.bulletSpeed);
-      bullets.push(bullet);
-    }
-  }
-  
-}
-
-class Player{
-  constructor(gun){
-    this.p = createVector(width/2, height*0.9);
-    this.health = 100;
-    this.gun = gun;
-    this.groupSize = 1;
-  }
-
-  update(){
-    this.p.x = mouseX;
-    this.gun.fire(this.p.x, this.p.y);
-  }
-
-  show(){
-    fill(0,255,0);
-    circle(this.p.x, this.p.y, width/20);
-  }
-
-  
-}
-
-class Enemy{
-  constructor(x,y, health, speed, rangeOfSight){
-    this.p = createVector(x,y);
-    this.health = health;
-    this.speed = speed;
-    this.rangeOfSight = rangeOfSight;
-  }
-
-  update(){
-    this.p.y += this.speed;
-  }
-
-  
 }
