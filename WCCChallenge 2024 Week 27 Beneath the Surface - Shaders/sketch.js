@@ -80,7 +80,8 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight), WEBGL);
+  // createCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight), WEBGL);
+  createCanvas(1080, 1080, WEBGL);
   noStroke();
 
   params = {
@@ -129,7 +130,8 @@ function draw() {
 }
 
 function windowResized() {
-  resizeCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight));
+  // resizeCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight));
+  resizeCanvas(1080, 1080, WEBGL);
 }
 
 

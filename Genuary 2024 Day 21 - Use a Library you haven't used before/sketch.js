@@ -16,6 +16,7 @@ INSPIRATION/RESOURCES
   - THREE.js OrbitControls https://unpkg.com/three@0.122.0/examples/js/controls/OrbitControls.js
   - lil-gui: https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.umd.min.js
   - Simplex noise: https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js
+  - Thing Hand Model: https://www.printables.com/model/7804-addams-family-thing/files
 
 TODO/Opportunities:
   DONE: Make adjustable with lil-gui
@@ -99,12 +100,30 @@ scene = new THREE.Scene();
 //######### LIGHTS ##########//
 // Not needed for NormalMaterial
 // Add Lights
-// ambientLight = new THREE.AmbientLight( 0x404040, 1); // soft white light
-// scene.add(ambientLight);
-const pointLight = new THREE.PointLight()
+ambientLight = new THREE.AmbientLight( 0x404040, 0.8); // soft white light
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffffff, 0.8);
+scene.add(pointLight);
 
-
-
+// ########### THING ############# //
+const loader = new THREE.OBJLoader();
+// load a resource
+loader.load(
+	// resource URL
+	'thing.obj',
+	// called when resource is loaded
+	function ( object ) {
+		scene.add( object );
+	},
+	// called when loading is in progresses
+	function ( xhr ) {
+		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+	},
+	// called when loading has errors
+	function ( error ) {
+		console.log(`An error happened: ${error}`);
+	}
+);
 
 
 //######### CAMERA ##########//
@@ -123,7 +142,10 @@ let radius = 1.5;
 
 const bladeGeometry =  new THREE.BoxGeometry(1,1,1);
 // const bladeGeometry = new THREE.ConeGeometry(params.coneRadius,params.coneHeight,32);
-bladeMaterial = new THREE.MeshNormalMaterial();
+// bladeMaterial = new THREE.MeshPhongMaterial();
+bladeMaterial = new THREE.MeshPhongMaterial({
+  color : new THREE.Color(0xff0000)
+});
 
 
 // bladeMaterial = new THREE.MeshPhysicalMaterial({
@@ -177,7 +199,7 @@ function animate() {
     
     // blades[i].children[0].rotation.x = (elapsedTime/params.rotationRate + 2*i/nCubes)*Math.PI;
     // blades[i].children[0].rotation.x = (elapsedTime/mapNoise(elapsedTime,0.1,10) + 2*i/nCubes)*Math.PI;
-    blades[i].children[0].rotation.x = params.driveRotation ? (noise.noise2D(elapsedTime/params.noiseProgRate, 1000)*0.5 + 0.5*i/nCubes)*4*Math.PI : (0.1*elapsedTime/rotationRate + 0.5*i/nCubes)*4*Math.PI;
+    blades[i].children[0].rotation.x = params.driveRotation ? (noise.noise2D(elapsedTime/params.noiseProgRate, 1000)*0.5 + 0.5*i/nCubes)*Math.PI : (0.1*elapsedTime/rotationRate + 0.5*i/nCubes)*Math.PI;
     blades[i].children[0].scale.x = params.driveX ? noise.noise2D(elapsedTime/params.noiseProgRate, 2000) * 2 * params.bladeSclX : params.bladeSclX;
     blades[i].children[0].scale.y = params.driveY ? noise.noise2D(elapsedTime/params.noiseProgRate, 3000) * 2 * params.bladeSclY : params.bladeSclY;
     blades[i].children[0].scale.z = params.driveZ ? (noise.noise2D(elapsedTime/params.noiseProgRate, 4000) + 0.5) * 2 * params.bladeSclZ : params.bladeSclZ;
@@ -186,6 +208,7 @@ function animate() {
   if(params.autoRotateMode){
     let a = elapsedTime/params.cameraRotationRate;
     camera.position.set(params.cameraZoom*Math.cos(a), 0, params.cameraZoom*Math.sin(a));
+    pointLight.position.set(params.cameraZoom*Math.cos(a), 0, params.cameraZoom*Math.sin(a));
     camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0));
   } else{
     controls.update();
