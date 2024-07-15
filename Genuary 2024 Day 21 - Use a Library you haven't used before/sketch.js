@@ -34,9 +34,22 @@ let renderer, scene, camera, cube, ambientLight, ptLight;
 let gui = new lil.GUI();
 
 
+/*########### Toggle Cursor ###############*/
+let cursorVisible = true;
+function toggleCursor(event) {
+  if (event.key === 'c') {
+    cursorVisible = !cursorVisible;
+    document.getElementById('threejs-canvas').style.cursor = cursorVisible ? 'default' : 'none';
+  }
+}
+
+document.addEventListener('keydown', toggleCursor);
+
+
 const params = {
   cameraRotationRate: 3,
   cameraZoom: 5,
+  cameraHeight: 0,
   bladeAngleZ : 0,
   bladeAngleY: 0,
   rotationRate: 8,
@@ -62,6 +75,7 @@ const mapVal = (value, start1, stop1, start2, stop2) => {start2 + (stop2 - start
 /*########### GUI BIZ ############ */
 gui.add(params, 'cameraRotationRate', 0.01, 6);
 gui.add(params, 'cameraZoom', 0,10,0.1);
+gui.add(params, 'cameraHeight', 0,10,0.1);
 gui.add(params, 'bladeAngleZ',0,2*Math.PI,0.5/Math.PI);
 gui.add(params, 'bladeAngleY',0,2*Math.PI,0.5/Math.PI);
 gui.add(params, 'rotationRate', 0, 20);
@@ -106,24 +120,27 @@ const pointLight = new THREE.PointLight(0xffffff, 0.8);
 scene.add(pointLight);
 
 // ########### THING ############# //
-const loader = new THREE.OBJLoader();
-// load a resource
-loader.load(
-	// resource URL
-	'thing.obj',
-	// called when resource is loaded
-	function ( object ) {
-		scene.add( object );
-	},
-	// called when loading is in progresses
-	function ( xhr ) {
-		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-	},
-	// called when loading has errors
-	function ( error ) {
-		console.log(`An error happened: ${error}`);
+function createGLTF(scene) {
+	const gltfLoader = new THREE.GLTFLoader();
+	const url = 'hand.gltf';
+	gltfLoader.load(url, (gltf) => {
+		handModel = gltf.scene;
+		handModel.position.y = -12.5;
+    handModel.scale.set(0.2, 0.2, 0.2);
+		scene.add(handModel);
+  
+	}, handleProgress, handleError);
+	
+	function handleProgress() {};
+	
+	function handleError(error) {
+		console.error(error);
 	}
-);
+
+}
+
+createGLTF(scene);
+
 
 
 //######### CAMERA ##########//
@@ -146,7 +163,7 @@ const bladeGeometry =  new THREE.BoxGeometry(1,1,1);
 bladeMaterial = new THREE.MeshPhongMaterial({
   color : new THREE.Color(0xff0000)
 });
-
+// var mirrorMaterial = new THREE.MeshPhongMaterial( { emissive: 0x111111, envMap: mirrorCamera.renderTarget } );
 
 // bladeMaterial = new THREE.MeshPhysicalMaterial({
 //   roughness: 0,
@@ -190,6 +207,7 @@ document.addEventListener('keydown', (event) => {
 //######### Animation ##########//
 
 const clock = new THREE.Clock();
+
 function animate() {
 	const elapsedTime = clock.getElapsedTime();
   let rotationRate = params.driveRotationRate ? noise.noise2D(elapsedTime/params.noiseProgRate, 0) * 20 : params.rotationRate;
@@ -207,8 +225,8 @@ function animate() {
 
   if(params.autoRotateMode){
     let a = elapsedTime/params.cameraRotationRate;
-    camera.position.set(params.cameraZoom*Math.cos(a), 0, params.cameraZoom*Math.sin(a));
-    pointLight.position.set(params.cameraZoom*Math.cos(a), 0, params.cameraZoom*Math.sin(a));
+    camera.position.set(params.cameraZoom*Math.cos(a), params.cameraHeight, params.cameraZoom*Math.sin(a));
+    pointLight.position.set(params.cameraZoom*Math.cos(a), params.cameraHeight, params.cameraZoom*Math.sin(a));
     camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0));
   } else{
     controls.update();
