@@ -18,6 +18,10 @@ let baseColourPalette;
 let fullColourPalette;
 let colourPaletteIndex = 0;
 let yOff, xOff;
+let thresholdModes = {
+  smoothStepThresholdMode: 0,
+  expThresholdMode: 1
+}
 
 
 
@@ -39,7 +43,7 @@ function setup() {
   baseColourPalette = "#44d800, #ff8c00, #7f00ff, #ff3800, #a7fc00, #af0dd3, #ff2b67, #ffeb00, #00ffce, #ff1dce".split(", ").map(e => color(e));
   fullColourPalette = fillInColourPalette(baseColourPalette, 100);
   console.log(fullColourPalette);
-
+  
   params = {
     uM: 1.0,
     uN: 10.0,
@@ -48,12 +52,13 @@ function setup() {
     driveM: true,
     driveN: true,
     moveXY: true,
+    uBlackAndWhiteMode: 0,
     cycleFrames: 15000,
     cycleColours: true,
     colourIndex: 0,
-    cycleColourEveryXFrames: 30,
-    uL: 1.0,
-    slowZoomOut: false
+    cycleColourEveryXFrames: 10,
+    slowZoomOut: true,
+    uThresholdMode: thresholdModes.smoothStepThresholdMode
   }
 
   gui = new lil.GUI();
@@ -61,20 +66,21 @@ function setup() {
   gui.add(params, 'uN', 1.0, 10.0, 0.001);
   gui.add(params, 'uZoomOutLevel', 0.1, 5.0, 0.01);
   gui.add(params, 'uThreshold', 0.001, 0.5, 0.001);
-  gui.add(params, 'cycleFrames', 0,60*20);
+  gui.add(params, 'cycleFrames', 0,20000);
   gui.add(params, 'driveM');
   gui.add(params, 'driveN');
   gui.add(params, 'moveXY');
+  gui.add(params, 'uBlackAndWhiteMode', {'blackAndWhiteMode' : 1, 'colourMode': 0});
   gui.add(params, 'cycleColours');
   gui.add(params, 'colourIndex', 0, fullColourPalette.length -1, 1);
   gui.add(params, 'cycleColourEveryXFrames',10,120,10);
-  gui.add(params, 'uL', 1.0, 5.0, 0.01);
   gui.add(params, 'slowZoomOut');
+  gui.add(params, 'uThresholdMode', {"smoothStepThresholdMode": 0, "expThresholdMode" : 1});
 
-  mPara = createP(`m`);
-  nPara = createP(`n`);
-  xPosPara = createP("");
-  yPosPara = createP("");
+  // mPara = createP(`m`);
+  // nPara = createP(`n`);
+  // xPosPara = createP("");
+  // yPosPara = createP("");
 
   yOff = random(10000);
   xOff = random(10000);
@@ -114,16 +120,15 @@ function draw() {
     n = 3.0 * 0.5*(cos(frameCount * TWO_PI /params.cycleFrames + PI) + 1) + 3.0;
     uN = n;
   } 
-
- 
-
   
   shaderProgram.setUniform('uM', uM);
   shaderProgram.setUniform('uN', uN);
   shaderProgram.setUniform('xOff',xPos);
   shaderProgram.setUniform('yOff',yPos);
   shaderProgram.setUniform('uThreshold', params.uThreshold);
+  shaderProgram.setUniform('uThresholdMode', params.uThresholdMode);
   shaderProgram.setUniform('uZoomOutLevel', params.uZoomOutLevel);
+  shaderProgram.setUniform('uBlackAndWhiteMode', params.uBlackAndWhiteMode);
   shaderProgram.setUniform('uR', red(currentColour)/255.0);
   shaderProgram.setUniform('uG', green(currentColour)/255.0);
   shaderProgram.setUniform('uB', blue(currentColour)/255.0);
@@ -141,13 +146,12 @@ function draw() {
   endShape(CLOSE);   // Top-left
 
   // rect(-width/2, -height/2, width, height);
-  nPara.html(`n: ${n}`);
-  mPara.html(`m: ${m}`);
-  xPosPara.html(`xPos: ${xPos}`);
-  yPosPara.html(`yPos: ${yPos}`);
+  
+//   nPara.html(`n: ${n}`);
+//   mPara.html(`m: ${m}`);
+//   xPosPara.html(`xPos: ${xPos}`);
+//   yPosPara.html(`yPos: ${yPos}`);
 }
-
-
 
 function windowResized() {
   // resizeCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight));
@@ -156,11 +160,8 @@ function windowResized() {
 
 
 const vertShader = `
-// Vertex shader
-
 attribute vec3 aPosition;
 attribute vec2 aTexCoord;
-
 varying vec2 vTexCoord;
 
 void main() {
@@ -179,7 +180,9 @@ uniform float uN;
 uniform float xOff;
 uniform float yOff;
 uniform float uThreshold;
+uniform int uThresholdMode;
 uniform float uZoomOutLevel;
+uniform int uBlackAndWhiteMode;
 uniform float uL;
 uniform float uR;
 uniform float uG;
@@ -192,36 +195,28 @@ void main() {
   float x = (vTexCoord.x - xOff)*uZoomOutLevel;
   float y = (vTexCoord.y - yOff)*uZoomOutLevel;
 
-  // float term1 = sin(uM * PI * x) * sin(uN * PI * y);
-  // float term2 = sin(uN * PI * x) * sin(uM * PI * y);
-
   float term1 = cos(uM * PI * x) * cos(uN * PI * y);
   float term2 = cos(uN * PI * x) * cos(uM * PI * y);
 
-  // float term1 = cos(uM * PI * x / uL) * cos(uN * PI * y / uL);
-  // float term2 = cos(uN * PI * x / uL) * cos(uM * PI * y / uL);
-
   float result = abs(term1  - term2);
 
+  // ##### SETTING THE THRESHOLD ##### //
+  float intensity;
+  if(uThresholdMode == 0){
+    intensity = 1.0 - smoothstep(uThreshold/100.0, uThreshold, result);
+  } else if(uThresholdMode == 1){
+    intensity = exp(-result*15.0);
+  }
 
-
-
-  // float intensity = exp(-result*15.0);
-  float intensity = 1.0 - smoothstep(uThreshold/100.0, uThreshold, result);
-  
-  // float intensity;
-  // if(result < uThreshold){
-  //   intensity = 1.0;
-  // } else{
-  //   intensity = 0.0;
-  // }
-
-  vec4 inputColour = vec4(uR, uG, uB, 1.0);
-  vec4 bgColour = vec4(1.0 - uR, 1.0 - uG, 1.0 - uB, 1.0);
-  vec4 pixelColour = mix(bgColour, inputColour, intensity);
-  // vec4 pixelColour = vec4(intensity, intensity, intensity, 1.0);
-  // vec4 pixelColour = vec4(x,y,1.0,1.0);
-  
+  vec4 pixelColour;
+  if(uBlackAndWhiteMode == 0){
+    vec4 inputColour = vec4(uR, uG, uB, 1.0);
+    vec4 bgColour = vec4(1.0 - uR, 1.0 - uG, 1.0 - uB, 1.0);
+    pixelColour = mix(bgColour, inputColour, intensity);
+  } else{
+   pixelColour = vec4(intensity, intensity, intensity, 1.0);
+  }
+    
   gl_FragColor = pixelColour;
 }
 `
