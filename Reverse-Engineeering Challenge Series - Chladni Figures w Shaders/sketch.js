@@ -42,7 +42,7 @@ function setup() {
   // baseColourPalette =  "#ff4800, #ff5c00, #fe7100, #fe8500, #fd9900, #fdae00, #fcc200, #fcd600, #fbeb00, #fbff00".split(", ").map(e => color(e));
   baseColourPalette = "#44d800, #ff8c00, #7f00ff, #ff3800, #a7fc00, #af0dd3, #ff2b67, #ffeb00, #00ffce, #ff1dce".split(", ").map(e => color(e));
   fullColourPalette = fillInColourPalette(baseColourPalette, 100);
-  console.log(fullColourPalette);
+  // console.log(fullColourPalette);
   
   params = {
     uM: 1.0,
@@ -57,7 +57,7 @@ function setup() {
     cycleColours: true,
     colourIndex: 0,
     cycleColourEveryXFrames: 10,
-    slowZoomOut: true,
+    slowZoomOut: false,
     uThresholdMode: thresholdModes.smoothStepThresholdMode
   }
 
