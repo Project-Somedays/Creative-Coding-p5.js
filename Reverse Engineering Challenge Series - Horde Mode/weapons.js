@@ -1,9 +1,11 @@
 class Bullet{
-    constructor(x,y,dir,bulletSpeed, damage){
+    constructor(x,y,dir,bulletSpeed,damage, penetration){
       this.p = createVector(x,y);
       this.dir = createVector(dir.x, dir.y).setMag(bulletSpeed);
+      this.hitCount = 0;
       this.isSpent = false;
       this.damage = damage;
+      this.penetration = penetration;
     }
     update(){
       if(!this.isSpent) this.p.add(this.dir);
@@ -11,7 +13,8 @@ class Bullet{
     }
 
     registerHit(){
-        this.isSpent = true;
+      this.hitCount ++;  
+      this.isSpent = this.hitCount > this.penetration;
     }
   
     show(){
@@ -21,18 +24,19 @@ class Bullet{
   }
 
   class Gun{
-    constructor(name, fireRate, spread, bulletSpeed, baseDamage){
+    constructor(name, fireRate, spread, bulletSpeed, baseDamage, penetration){
       this.name = name;
       this.fireRate = fireRate;
       this.spread = spread;
       this.bulletSpeed = bulletSpeed;
       this.baseDamage = baseDamage;
+      this.penetration = penetration;
     }
   
     fire(x, y){
       if(frameCount % this.fireRate === 0){
         let dir = p5.Vector.fromAngle(random(-this.spread/2, this.spread/2) - HALF_PI) ;
-        let bullet = new Bullet(x,y, dir, this.bulletSpeed, this.baseDamage);
+        let bullet = new Bullet(x,y, dir, this.bulletSpeed, this.baseDamage, this.penetration);
         bullets.push(bullet);
       }
     }
