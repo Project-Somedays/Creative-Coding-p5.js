@@ -1,6 +1,6 @@
 /*
 Author: Project Somedays
-Date: 2024-07-27
+Date: 2024-07-27 last updated 2024-08-03
 Title: Reverse-Engineering Challenge Series: Bubble Field 2
 
 Setting the size of the spheres by their spherical distance from the control point (also moving around on the surface of the sphere)
@@ -10,13 +10,15 @@ INSPIRATION/RESOURCES
   - lil-gui library: https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.umd.min.js
 
 TO-DO
-  - lil-gui colour picker
+  - DONE! lil-gui colour picker
   - multiple triggers
   - non-linear function for setting the size
   - dynamically set the size of the spheres based on how many there are
-  - fix mapping function - I'm getting wrap around (but I don't hate it)
+  - DONE! fix mapping function - I'm getting wrap around (but I don't hate it)
 */
 
+
+const colours = {"Ultra Violet":"#54478c","Lapis Lazuli":"#2c699a","Blue (Munsell)":"#048ba8","Keppel":"#0db39e","Emerald":"#16db93","Light green":"#83e377","Mindaro":"#b9e769","Maize":"#efea5a","Saffron":"#f1c453","Sandy brown":"#f29e4c"};
 let gui;
 let params;
 let xOff, yOff, zOff;
@@ -24,6 +26,7 @@ let cntrlPt;
 let r;
 let points = [];
 let spotLightPos;
+let decayingSineVariables
 
 function setup() {
   // createCanvas(min(windowWidth,windowHeight), min(windowWidth,windowHeight), WEBGL);
@@ -49,7 +52,13 @@ function setup() {
     noiseProgRate: 150,
     globRotRate: 600,
     autoRotMode: true,
-    upperDistLim: height/4
+    upperDistLim: height/4,
+    distanceMapMethod: linearDMap,
+    decayAmplitude: 2*r,
+    decayRate: 1,
+    decayFrequency: 1,
+    decayPhaseShift: 0,
+    colour: colours["Ultra Violet"]
   }
 
   // set up gui
@@ -60,6 +69,14 @@ function setup() {
   gui.add(params, 'globRotRate', 30, 1200);
   gui.add(params, 'upperDistLim', 0.01*params.n*params.sep,params.n*params.sep);
   gui.add(params, 'autoRotMode');
+  gui.add(params, 'distanceMapMethod', {'linearDMap': linearDMap, 'decayingSine': decayingSine});
+  decayingSineVariables = gui.addFolder('Decaying Sine Variables');
+  decayingSineVariables.add(params, 'decayAmplitude', 0.1*r, 5*r);
+  decayingSineVariables.add(params, 'decayRate', 0, TWO_PI);
+  decayingSineVariables.add(params, 'decayFrequency', 0, 5);
+  decayingSineVariables.add(params, 'decayPhaseShift', 0, TWO_PI);
+  gui.add(params, 'colour', colours);
+
 
   points = getPointDistribution(params.n);
   cntrlPt = {lat: 0, lon: 0, pos: createVector(0,0,0)};
@@ -71,6 +88,7 @@ function setup() {
 function draw() {
   background(255);
   push();
+  
 
   if(params.autoRotMode) {
     rotateX(frameCount/params.globRotRate);
@@ -82,7 +100,7 @@ function draw() {
 
   
 
-  pointLight(247, 98, 35, 0, 0, 0);
+  pointLight(red(params.colour), green(params.colour), blue(params.colour), 0, 0, 0);
   
   // locating the cntrlPoint
   let theta = map(noise(frameCount/params.noiseProgRate + xOff), 0, 1, 0, TWO_PI);
@@ -99,8 +117,8 @@ function draw() {
 
   // draw a spotlight in line but further out and on the opposite side to the cntrol point
   spotLightPos.set(-1.75*cntrlX, -1.75*cntrlY, -1.75*cntrlZ);
-  pointLight(247, 98, 35, spotLightPos.x, spotLightPos.y, spotLightPos.z);
-  pointLight(247, 98, 35, -spotLightPos.x, -spotLightPos.y, -spotLightPos.z);
+  pointLight(red(params.colour), green(params.colour), blue(params.colour), spotLightPos.x, spotLightPos.y, spotLightPos.z);
+  pointLight(red(params.colour), green(params.colour), blue(params.colour), -spotLightPos.x, -spotLightPos.y, -spotLightPos.z);
  
   // show cntrlPt
   // noFill();
@@ -115,7 +133,7 @@ function draw() {
     push();
     translate(pt.loc.x, pt.loc.y, pt.loc.z);
     let d = sphericalDistance(cntrlPt.lat, cntrlPt.lon, pt.lat, pt.lon, r);
-    let growPtR = map(d, 0, 0.2*TWO_PI*r, r/10, r/1000);
+    let growPtR = params.distanceMapMethod(d);
     sphere(growPtR);
     pop();
   }
@@ -145,6 +163,15 @@ function getPointDistribution(n){
 
   return points;
 
+}
+
+function linearDMap(d){
+  return map(d, 0, PI*r, r/10, 0);
+}
+
+function decayingSine(d) {
+  let dAngle = map(d,0,PI*r, 0, TWO_PI);
+  return 0.001*r*params.decayAmplitude * exp(-params.decayRate * dAngle) * sin(params.decayFrequency * dAngle + params.decayPhaseShift);
 }
 
 function sphericalDistance(lat1, lon1, lat2, lon2, radius) {
