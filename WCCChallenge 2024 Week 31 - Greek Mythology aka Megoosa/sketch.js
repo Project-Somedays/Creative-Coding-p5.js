@@ -26,6 +26,7 @@ RESOURCES
   TO DO:
   - Rotate the head when "eating" the bread
   - Change the rotation point of the head
+  - Eat the bread
   - Learn enough Blender to turn it into a 3D-printable magnetic key holder
 */
 
@@ -54,7 +55,8 @@ function preload(){
 }
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight));
+  createCanvas(1080, 1080);
   mousePos = createVector(mouseX, mouseY);
   imageMode(CENTER);
   noFill();
