@@ -1,3 +1,5 @@
+// Idea: run the sim in setup, log the positions of all the nodes and then we can rewind perfectly =)
+
 let Engine = Matter.Engine,
     World = Matter.World,
     Bodies = Matter.Bodies,
@@ -7,11 +9,16 @@ let engine;
 let world;
 let nodes = [];
 let constraints = [];
-let totalNodes = 1000;
+const totalNodes = 1000;
 let spool;
 let winding = false;
 let ground;
-let mousePos;
+const captureFrames = 150;
+let captureArray = [];
+let rewind = false;
+let currentFrame = 0;
+let junkFrames = 3;
+
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -48,52 +55,93 @@ function setup() {
     }
     prevNode = node;
   }
+  // get that first frame out of the way
+  for(let i = 0; i < junkFrames; i++){
+    Engine.update(engine);
+  }
+  
+  captureArray = capture(captureFrames);
+  pixelDensity(1);
+  frameRate(30);
+  
+  stroke(0);
+  strokeWeight(5);
+  noFill();
 
-  mousePos = createVector(0,0);
 }
 
 function draw() {
   background(240);
 
-  mousePos.set(mouseX, mouseY);
 
-  // Update engine
-  Engine.update(engine);
+  currentFrame = frameCount % captureFrames;
+  if(currentFrame === 0) rewind = !rewind;
 
-  // Draw spool
-  fill(200);
-  ellipse(spool.position.x, spool.position.y, 40);
+  let frameIndex = rewind ? captureFrames - 1 - currentFrame : currentFrame;
 
-  // Draw nodes and constraints
-  // for (let i = 0; i < nodes.length; i++) {
-  //   fill(0);
-  //   ellipse(nodes[i].position.x, nodes[i].position.y, 5);
-  // }
-
-  // to replace with curveVertex at some point
-  strokeWeight(5);
-  stroke(0);
-  noFill();
   beginShape();
-  for (let c of constraints) {
-    // line(c.bodyA.position.x, c.bodyA.position.y, c.bodyB.position.x, c.bodyB.position.y);
-    curveVertex(c.bodyA.position.x, c.bodyA.position.y);
+  for(let j = 0; j < totalNodes; j++){
+    curveVertex(captureArray[frameIndex][j].x,captureArray[frameIndex][j].y);
   }
   endShape();
 
-  // Winding mechanism
-  if (winding) {
-    let firstNode = nodes[0];
-    Matter.Body.setPosition(firstNode, spool.position);
 
-    for (let i = 1; i < nodes.length; i++) {
-      let constraint = constraints[i];
-      // Matter.Body.setPosition(nodes[i], constraint.bodyA.position);
-      Matter.Body.setPosition(nodes[i], mousePos);
-    }
+  
   }
-}
+  
+  
+
+  // Update engine
+  // Engine.update(engine);
+
+  // // Draw spool
+  // fill(200);
+  // ellipse(spool.position.x, spool.position.y, 40);
+
+  // // Draw nodes and constraints
+  // // for (let i = 0; i < nodes.length; i++) {
+  // //   fill(0);
+  // //   ellipse(nodes[i].position.x, nodes[i].position.y, 5);
+  // // }
+
+  // // to replace with curveVertex at some point
+  // strokeWeight(5);
+  // stroke(0);
+  // noFill();
+  // beginShape();
+  // for (let c of constraints) {
+  //   // line(c.bodyA.position.x, c.bodyA.position.y, c.bodyB.position.x, c.bodyB.position.y);
+  //   curveVertex(c.bodyA.position.x, c.bodyA.position.y);
+  // }
+  // endShape();
+
+  // // Winding mechanism
+  // // if (winding) {
+  // //   let firstNode = nodes[0];
+  // //   Matter.Body.setPosition(firstNode, spool.position);
+
+  // //   for (let i = 1; i < nodes.length; i++) {
+  // //     let constraint = constraints[i];
+  // //     // Matter.Body.setPosition(nodes[i], constraint.bodyA.position);
+  // //     Matter.Body.setPosition(nodes[i], mousePos);
+  // //   }
+  // // }
+
 
 function mousePressed() {
   winding = !winding;
+}
+
+
+function capture(captureFrames){
+  let captureArray = new Array(captureFrames);
+  for(let i = 0; i < captureFrames; i++){
+    framePositions = new Array(nodes.length);
+    Engine.update(engine);
+    for(let j = 0; j < nodes.length; j++){
+      framePositions[j] = createVector(nodes[j].position.x, nodes[j].position.y);
+    }
+    captureArray[i] = [...framePositions];
+  }
+  return captureArray;
 }
