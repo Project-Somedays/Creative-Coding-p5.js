@@ -7,45 +7,61 @@ Made for Sableraph's weekly creative coding challenges, reviewed weekly on https
 See other submissions here: https://openprocessing.org/curation/78544
 Join The Birb's Nest Discord community! https://discord.gg/g5J6Ajx9Am
 
-Love those videos of rewinding destruction/chaos
-Choose your background image: SABLERAPH, BIRB
+Love me some wanton pixel destruction 💣💥🤯
+Sampling from the image to make Matter.js boxes
+Saving the canvas as an image that gets played back in order and then in reverse order during playback mode
 
-It works like a highspeed camera - the previous captureFrames are always being captured
+INSTRUCTIONS
+- Start the recording - you'll see the progress bar across the bottom
+- Right Click: Set off an explosion
+- Click release hold to let the slumpage begin
+- Reset to the start again
 
+QUESTIONS
+How do you stop the usual right click options coming up?
+Tried left click and it was too annoying with constantly setting off explosions
 
 RESOURCES:
-- Matter.js
-- lil-gui
+- Matter.js: https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js
+- lil-gui: https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.umd.min.js
 - fxHash Sableraph image: https://gateway.fxhash.xyz/ipfs/Qmai8R24bQjCrdRwsM5dgWjk6Q73gNPHTWm4cgQ8G2WFZn
-- birb: https://www.deviantart.com/arrupako/art/Birb-634103522
-- 
+- birb: https://i.kym-cdn.com/entries/icons/facebook/000/019/189/birb.jpg
+- GorillaSun (used with permission! Much thanks!)  https://pbs.twimg.com/profile_images/1516050989241057281/05gwFNl3_400x400.jpg
+- Grumpy Cat: https://media.wired.com/photos/5cdefc28b2569892c06b2ae4/master/w_2560%2Cc_limit/Culture-Grumpy-Cat-487386121-2.jpg
+- Overly Attached GF: https://helios-i.mashable.com/imagery/articles/06NwyMPotETRux7TrR6H74Q/hero-image.fill.size_1200x1200.v1614270598.jpg
+- Wonka Meme: https://helios-i.mashable.com/imagery/articles/00jdsdJ5TJ5j9pExdUWjQaC/hero-image.fill.size_1200x900.v1611611940.jpg
+- The Coding Train's excellent tutorials on Matter.js: https://www.youtube.com/playlist?list=PLRqwX-V7Uu6bLh3T_4wtrmVHOrOEM1ig_
 
-INTERACTION:
-- Choose your interaction mode: BOMB, WRECKING_BALL
-- Press space or hit the button to stop overwriting the frameBuffer
 
+TASK LIST
+TODO: Fix bug where hitting toggle playback before recording crashes everything
+TODO: Fix bug where hitting startstopRecord too fast crashes everything
+TODO: Tidy up logic --> currently hidden in too many places for my liking
 
-TODO: Indicate how long until the buffer is full
-TODO: Fix weird glitches the where things escape
-TODO: Add a distance effect from the explosion
-
+DONE: Indicate how long until the buffer is full
+KINDA DONE: Fix weird glitches the where things escape - make walls MUCH fatter
+DONE: Add a distance effect from the explosion
+DONE: Move controls to right click for explosions
+DONE: Add adjustment for capture duration
+DONE: Make fall and record on load
+DONE: Add bg colour adjustment
 */
 
 
 // gui biz
 let params, gui;
-
-let modes = Object.freeze({
-  NONE: "None",
-  BOMB: "Bomb",
-  WRECKING_BALL: "Wrecking Ball"
-})
+let samplingBiz;
+let interactionBiz;
+let captureBiz;
 
 // images
 let sableraphImg;
 let birb;
 let derp;
 let projectsomedays;
+let gorillasun;
+let gfmeme;
+let wonkameme;
 
 // graphics
 let canvas;
@@ -63,25 +79,26 @@ let engine, world;
 // environment
 let wallThick;
 
-
 // control
 let playbackMode = false;
 let rewind = false;
 let frames = [];
-let runSim = false;
+let holdInPlace = false;
 let startPlaybackFrame = 0;
+let recordingMode = false;
 
 function preload(){
   sableraphImg = loadImage("sableraph.png");
   birb = loadImage("birb.png");
   derp = loadImage("derpyhorse.png");
-  projectsomedays = loadImage("me.png");
-
+  projectsomedays = loadImage("Me.png");
+  gorillasun = loadImage("gorillasun.png");
+  gfmeme = loadImage("gf.png");
+  wonkameme = loadImage("wonka.png");
 }
 
 function setup() {
   canvas = createCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight));
-
   pixelDensity(1);
   noStroke();
   imageMode(CENTER);
@@ -94,62 +111,67 @@ function setup() {
   
   gui = new lil.GUI();
   
-  params = {
-    img: birb,
-    boxSize: 20,
-    showBoxes: true,
-    showImage: false,
-    mode: modes.BOMB,
-    captureLength: 120,
-    explosionStrength: 20,
-    gravityStrength: 5.0,
-    canInteract: false,
-    togglePlaybackMode: togglePlayback,
-    reset: resetWorld,
-    manualOverrideRunSim: toggleRunSim
-  }
 
-  gui.add(params, 'img', {
-    'sableraph' : sableraphImg,
-    'birb' : birb,
-    'derp': derp,
-    'me':projectsomedays
+  // declaring variables for adjustment and their default values
+  params = {
+    img: sableraphImg,
+    boxSize: 10,
+    captureFrameLimit: 120,
+    explosionStrength: 15,
+    explosionRadius: width/2,
+    gravityStrength: 5.0,
+    transparencyThreshold: 5,
+    imgScale: 0.66,
+    togglePlaybackMode: togglePlayback,
+    'startStopRecording': startStopRecording,
+    reset: resetWorld,
+    releaseHold: releaseHold,
+		bgColour: "#000000"
+  }
+	
+	gui.addColor(params, 'bgColour');
+  samplingBiz = gui.addFolder("Sampling Biz");
+  samplingBiz.add(params, 'img', {
+    'Sableraph' : sableraphImg,
+    'Birb' : birb,
+    'Derpy Horse': derp,
+    'me':projectsomedays,
+    'gorillasun':gorillasun,
+    'gfmeme' : gfmeme,
+    'wonkameme': wonkameme
   }).onChange(() => resetWorld());
-  gui.add(params, 'boxSize', 15, 100, 1).onChange(() => {
-    runSim = false;
-    resetWorld();
-  });
-  gui.add(params, 'mode', [modes.BOMB, modes.WRECKING_BALL]);
-  gui.add(params, 'showBoxes');
-  gui.add(params, 'showImage');
-  gui.add(params, 'canInteract');
-  gui.add(params, 'captureLength', 30, 300, 5);
-  gui.add(params, 'explosionStrength', 5, 50, 1);
-  gui.add(params, 'gravityStrength', 1.0, 10.0, 0.1).onChange(value => engine.gravity.y = value);
-  gui.add(params, 'togglePlaybackMode');
-  gui.add(params, 'manualOverrideRunSim');
-  gui.add(params, 'reset');
+  samplingBiz.add(params, 'boxSize', 5, 100, 1).onChange(() => {resetWorld()});
+  samplingBiz.add(params, 'imgScale', 0, 1).onChange(() => {resetWorld()});
+  samplingBiz.add(params, 'transparencyThreshold', 0, 50, 1).onChange(() => resetWorld());
+
+  interactionBiz = gui.addFolder("Interaction/Sim Biz");
+  interactionBiz.add(params, 'explosionStrength', 5, 50, 1);
+  interactionBiz.add(params, 'explosionRadius', width/8, sqrt(2)*width);
+  interactionBiz.add(params, 'gravityStrength', 1.0, 10.0, 0.1).onChange(value => engine.gravity.y = value);
+  interactionBiz.add(params, 'releaseHold');
   
+  captureBiz = gui.addFolder("Capture Biz");
+  captureBiz.add(params, 'captureFrameLimit', 30, 300, 5);
+  captureBiz.add(params, 'startStopRecording');
+  captureBiz.add(params, 'togglePlaybackMode');
+
+  gui.add(params, 'reset');
 
   srcImgLayer = createGraphics(width, height);
   srcImgLayer.imageMode(CENTER);
   
-
   resetWorld();
+	holdInPlace = false;
+	recordingMode = true;
 }
 
 function draw() {
-  background(255);
-
-  // debugging image generation
-  // if(params.showImage && !playbackMode) image(srcImgLayer, width/2, height/2);
-  
-  // fill the buffer and, once it's full, drop the first frame and keep writing to the end
+  background(params.bgColour);
+ 
   if(!playbackMode){
-    // circle(width/2 + 0.5*width*cos(frameCount * TWO_PI/120), height/2, width/8);
-    // circle(mouseX, mouseY, 100);
+    
     Engine.update(engine);
-    if(!runSim){
+    if(holdInPlace){
       for(let box of boxes){
         box.reset();
       }
@@ -159,8 +181,16 @@ function draw() {
       box.show();
     }
 
-    if(frames.length >= params.captureLength) frames.shift();
-    capture(); 
+    if(recordingMode && frames.length < params.captureFrameLimit){
+      captureFrame();
+      showProgressBar();
+    }
+
+    if(frames.length === params.captureFrameLimit){
+      recordingMode = false;
+      playbackMode = true;
+    }
+    
     return;
   } 
   
@@ -168,14 +198,14 @@ function draw() {
     let currentFrame = (frameCount - startPlaybackFrame) % frames.length;
     if(currentFrame === 0) rewind = !rewind;
     
-    let frameIndex = rewind ? frames.length - 1 - currentFrame : currentFrame;
-    console.log(`Playing back frame ${frameIndex}`);
+    let frameIndex = rewind ? frames.length - 1 - currentFrame : currentFrame; 
+    // console.log(`Playing back frame ${frameIndex}`);
     image(frames[frameIndex], width/2, height/2);
   }
   
 }
 
-// use some closures here - these aren't used anywhere else
+// use some closures here - these other functions aren't used anywhere else
 function resetWorld(){
   World.clear(world);
 
@@ -190,72 +220,96 @@ function resetWorld(){
     World.add(world, makeWall(width/2, height, width, wallThick));
   }
 
-  generateWalls();
-
-
   function drawImageToCanvas(img){
     srcImgLayer.clear();
-    
-    srcImgLayer.image(img, width/2,width/2,img.width * (height/img.height), height);
+    srcImgLayer.image(img, width/2,width/2,img.width * (height/img.height)*params.imgScale, height*params.imgScale);
   }
+  
+  function generateBoxesFromImg(){
+    boxes = [];
+    for(let i = params.boxSize/2; i < height; i += params.boxSize/2){
+      for(let j = params.boxSize/2; j < width; j += params.boxSize/2){
+        let c = srcImgLayer.get(i,j);
+        if(alpha(c) > params.transparencyThreshold){
+          let box = new Box(i,j,c, params.boxSize);
+          boxes.push(box);
+          World.add(world, box.body);
+        }
+      }
+    }
+    return boxes;
+  }
+
+  generateWalls();
+
   drawImageToCanvas(params.img);
   generateBoxesFromImg(params.img)
 
   playbackMode = false;
-  runSim = false;
+  holdInPlace = true;
   frames = [];
-  
-
 }
 
 
 
-function capture(){
+function captureFrame(){
   let img = createGraphics(width, height);
   img.copy(canvas, 0, 0, width, height, 0, 0, width, height);
   frames.push(img);
-  console.log(`frames.length: ${frames.length}`);
+  // console.log(`frames.length: ${frames.length}`);
+}
+
+function showProgressBar(){
+  fill(0,255,0);
+  noStroke();
+  rect(0, height*0.95, width*frames.length/params.captureFrameLimit, height);
 }
 
 
 
-function generateBoxesFromImg(){
-  boxes = [];
-  for(let i = params.boxSize/2; i < height; i += params.boxSize/2){
-    for(let j = params.boxSize/2; j < width; j += params.boxSize/2){
-      let c = srcImgLayer.get(i,j);
-      if(alpha(c) !== 0){
-        let box = new Box(i,j,c, params.boxSize);
-        boxes.push(box);
-        World.add(world, box.body);
-      }
-      
-    }
-  }
-  return boxes;
-}
 
 
 function togglePlayback(){
   startPlaybackFrame = frameCount;
-  if(playbackMode) frames = [];
   playbackMode = !playbackMode;
-  console.log(`Playback Mode: ${playbackMode}`);
+  // console.log(`Playback Mode: ${playbackMode}`);
 }
 
 function mousePressed(){
+  if(mouseButton === RIGHT){
+    holdInPlace = false;
+    applyExplosionToBoxes();
+  }
+}
 
-  if(!params.canInteract) return;
-    
-  runSim = true;
-  console.log(`Run Sim: ${runSim}`);
+function applyExplosionToBoxes(){
+  let src = createVector(mouseX, mouseY);
   for(let box of boxes){
-    let force = p5.Vector.sub(createVector(box.body.position.x, box.body.position.y), createVector(mouseX, mouseY)).setMag(params.explosionStrength);
+    let d = dist(box.body.position.x, box.body.position.y, src.x, src.y);
+    if(d > params.explosionRadius) continue;
+    let force = p5.Vector.sub(createVector(box.body.position.x, box.body.position.y), src)
+    let forceMag = params.explosionStrength * (1 - params.explosionRadius/(sqrt(2)*width)); 
+    force.setMag(forceMag);
     Body.setVelocity(box.body, {x: force.x, y: force.y});
   }
 }
 
-function toggleRunSim(){
-  runSim = !runSim;
+function releaseHold(){
+  holdInPlace = !holdInPlace;
 }
 
+function startStopRecording(){
+  if(recordingMode){
+    playbackMode = true;
+    startPlaybackFrame = frameCount;
+  } else{
+    frames = [];
+  }
+  
+  recordingMode = !recordingMode;
+  
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}

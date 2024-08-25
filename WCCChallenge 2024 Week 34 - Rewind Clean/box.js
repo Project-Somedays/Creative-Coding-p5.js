@@ -1,3 +1,13 @@
+/* 
+Author: Project Somedays
+Date: 2024-08-24
+Title: WCCChallenge 2024 Week 34 - Rewind
+
+Taking cues from The Coding Train on wrapping Matter.js rectangles in a p5.js class
+https://www.youtube.com/playlist?list=PLRqwX-V7Uu6bLh3T_4wtrmVHOrOEM1ig_
+*/
+
+
 class Box{
     constructor(x,y,c, boxSize){
         this.initPos = {x: x, y: y};
