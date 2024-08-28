@@ -9,10 +9,10 @@ https://www.youtube.com/playlist?list=PLRqwX-V7Uu6bLh3T_4wtrmVHOrOEM1ig_
 
 
 class Box{
-    constructor(x,y,c, boxSize){
+    constructor(x,y,colour, boxSize){
         this.initPos = {x: x, y: y};
         this.angle = 0;
-        this.c = c;
+        this.colour = colour;
         this.boxSize = boxSize;
         this.body = Bodies.rectangle(x,y,boxSize, boxSize);
     }
@@ -26,7 +26,7 @@ class Box{
     }
 
     show(){
-        fill(this.c);
+        fill(this.colour);
         push();
         translate(this.body.position.x, this.body.position.y);
         rotate(this.body.angle);
