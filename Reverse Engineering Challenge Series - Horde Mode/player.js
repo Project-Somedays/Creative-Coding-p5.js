@@ -1,7 +1,7 @@
 class Player{
     constructor(gun){
       this.p = createVector(width/2, height*0.9);
-      this.health = 100;
+      this.health = 10;
       this.gun = gun;
       this.groupSize = 1;
       this.isDead = false

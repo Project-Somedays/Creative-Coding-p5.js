@@ -1,5 +1,5 @@
 class Bullet{
-    constructor(x,y,dir,bulletSpeed,damage, penetration){
+    constructor(x,y,dir,bulletSpeed,damage, penetration=1){
       this.p = createVector(x,y);
       this.dir = createVector(dir.x, dir.y).setMag(bulletSpeed);
       this.hitCount = 0;
@@ -24,13 +24,13 @@ class Bullet{
   }
 
   class Gun{
-    constructor(name, fireRate, spread, bulletSpeed, baseDamage, penetration){
-      this.name = name;
-      this.fireRate = fireRate;
-      this.spread = spread;
-      this.bulletSpeed = bulletSpeed;
-      this.baseDamage = baseDamage;
-      this.penetration = penetration;
+    constructor(profile){
+      this.name = profile.name;
+      this.fireRate = profile.fireRate;
+      this.spread = profile.spread;
+      this.bulletSpeed = profile.bulletSpeed;
+      this.baseDamage = profile.baseDamage;
+      this.penetration = profile.penetration;
     }
   
     fire(x, y){

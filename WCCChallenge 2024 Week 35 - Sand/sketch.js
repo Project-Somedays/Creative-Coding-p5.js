@@ -45,7 +45,8 @@ function preload(){
 }
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight), WEBGL);
+  // createCanvas(min(windowWidth, windowHeight), min(windowWidth, windowHeight), WEBGL);
+  createCanvas(1080, 1080, WEBGL);
 
   cam = createCamera();
   
@@ -56,6 +57,7 @@ function setup() {
   gui = new lil.GUI();
   
   params = {
+    wormCount : 1,
     sandColour : "#C2B280",
     showStroke: true,
     showSand: true,
@@ -77,6 +79,7 @@ function setup() {
   }
 
   gui.addColor(params, 'sandColour');
+  gui.add(params, 'wormCount', 1, 5, 1).onChange(value => worms = generateWorms(value));
   gui.add(params, 'showStroke');
   gui.add(params, 'showSand');
   gui.add(params, 'showWorms');
@@ -93,9 +96,7 @@ function setup() {
   
   
   
-  for(let i = 0; i < nWorms; i++){
-    worms[i] = new Worm(25, width/50, random(palette));
-  }
+  generateWorms(params.wormCount);
   
   dunescape = new Dunescape(params.res, 1/300, 0, width/4);
   duneMusic.loop();
@@ -171,7 +172,15 @@ const getNoiseVal = (offset, minVal, maxVal) => {return map(noise(frameCount*spe
 const getHeightAsAFunctionOfDistanceFromCentre = (r, R) => {return sqrt(2*R*r - r**2);
 }
 
-function windowResized(){
-  resizeCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight),WEBGL);
+// function windowResized(){
+//   resizeCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight),WEBGL);
+// }
+
+function generateWorms(n){
+  worms = []
+  for(let i = 0; i < n; i++){
+    worms[i] = new Worm(25, width/50, random(palette));
+  }
+  return worms;
 }
 

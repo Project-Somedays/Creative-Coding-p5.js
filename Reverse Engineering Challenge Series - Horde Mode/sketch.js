@@ -10,7 +10,7 @@ RESOURCES:
 */
 
 let bullets = [];
-let player;
+let players = [];
 let pistolFlintLock;
 let enemies = [];
 let powerups = [];
@@ -21,6 +21,7 @@ const globFrameRate = 30;
 let spawnRate = 30;
 let spriteBasic, spriteScreamer, spriteTough;
 
+let pistolFlintlock, pistolRevolver, pistolSnubnosed, pistolDesertEagle, shotgun, subUzi, subUMP, arM16A4;
 // TODO: Shuffle gait
 
 function preload(){
@@ -36,10 +37,18 @@ function setup() {
   imageMode(CENTER);
   frameRate(globFrameRate);
   
+  pistolFlintlock = {
+    name : "Flintlock Pistol",
+    fireRate: 60,
+    spread: TWO_PI/60,
+    bulletSpeed: windowHeight/50,
+    baseDamage: 1,
+    penetration: 1
+  }
 
-  pistolFlintLock = new Gun("Flintlock Pistol", 60, 0, windowHeight/50, 1, 2);
+  players.push(new Player(pistolFlintLock));
 
-  player = new Player(pistolFlintLock);
+
 
   
 
@@ -90,29 +99,50 @@ function setup() {
 
 function draw() {
   background(0);
-  player.update()
-  player.show();
+  for(let player of players){
+    player.update()
+    player.show();
+  }
+  
 
   if(frameCount%spawnRate === 0) enemies.push(spawnRandomEnemy());
 
   enemies = enemies.sort((a,b) => b.p.y - a.p.y);
   handleBullets(enemies);
   handleHittables(enemies);
-  cleanUpHittables(enemies);
+  takeDamageFromEnemies(enemies);
+  enemies = enemies.filter(e => !e.isDead);
+  players = players.filter(e => !e.isDead);
 
 
   if(!debugMode) return;
   fill(255);
   text(`Bullets: ${bullets.length}`,0,height/100);
   text(`Enemies: ${enemies.length}`,0,height/100+textSize());
-  text(`Health: ${player.health}`,0,height/100+2*textSize());
   
+  if(players.length === 0) gameOver();
+}
+
+function gameOver(){
+  textAlign(CENTER, CENTER);
+  textSize(40);
+  fill(255);
+  text("GAME OVER", width/2, height/2);
+  noLoop();
 }
 
 function progressEnemies(){
   for(let e of enemies){
     e.update();
     e.show();
+  }
+}
+
+function takeDamageFromEnemies(enemies){
+  for(let player of players){
+    for(let e of enemies){
+      if(registerHit(e.p, player.p, e.range)) player.damage(e.dealDamage());
+    }
   }
 }
 
@@ -124,7 +154,7 @@ function handleHittables(hittableThings){
   if(hittableThings.length === 0) return;
   for(let i = hittableThings.length - 1; i >= 0; i--){
     hittableThings[i].update();
-    hittableThings[i].seek(player.p);
+    hittableThings[i].seek(players.map(e => e.p));
     hittableThings[i].show();
   }
 }

@@ -1,11 +1,12 @@
 
 class Enemy{
-    constructor(x,y,scl, health, speed, rangeOfSight, damageRate, damagePerHit, damageRange, colour, img){
+    constructor(x,y,scl, health, speed, rangeOfSight, damageRate, damagePerHit, damageRange, colour, img, range = width/10){
       this.p = createVector(x,y);
       this.scl = scl;
       this.health = health;
       this.speed = speed;
       this.rangeOfSight = rangeOfSight;
+      this.range = range;
       this.isDead = false;
       this.damageRate = int(damageRate);
       this.damagePerHit = damagePerHit;
@@ -16,10 +17,19 @@ class Enemy{
       this.r = this.scl*this.img.width/2;
     }
 
-    seek(nearestPlayerPos){
-        if(p5.Vector.dist(nearestPlayerPos, this.p) <= this.rangeOfSight){
-            this.dir = p5.Vector.sub(nearestPlayerPos, this.p).setMag(this.speed);
+    seek(playerPositions){
+      let closestPlayer = null;
+      let minDistance = Infinity;
+      for(let playerPos of playerPositions){
+        let distance = p5.Vector.dist(playerPos, this.p)
+        if(distance < minDistance){
+          minDistance = distance;
+          closestPlayer = playerPos;
         }
+      }
+      if(minDistance <= this.rangeOfSight){
+          this.dir = p5.Vector.sub(closestPlayer, this.p).setMag(this.speed);
+      }
     }
   
     update(){
