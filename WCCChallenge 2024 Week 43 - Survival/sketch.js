@@ -1,33 +1,226 @@
+/*
+Author: Project Somedays
+Date: 2024-10-27
+Title: WCCChallenge - Survival
+
+Made for Sableraph's weekly creative coding challenges, reviewed weekly on https://www.twitch.tv/sableraph
+See other submissions here: https://openprocessing.org/curation/78544
+Join The Birb's Nest Discord community! https://discord.gg/g5J6Ajx9Am
+
+Rock, Scissors, Paper, Lizard, Spock simulator
+3D Flocking with hunt and flee behaviours using Octree for optimisation inspired by Patt Vira's Quadtree video
+Psst: implemented by Claude.AI with a bit of manual tweaking 🎃
+
+Population graph inspired by Age of Empires - was anyone else MEGA confused by that at age 11?
+(In Australia, I got AOE1 out of a cereal packet as part of promotion which DEFINITELY ages me hahaha)
+
+Using that feedback idea I learned from Aaron Reuland for that previous challenge to make drawing the graph super easy.
+
+Interaction:
+  - "O" toggles orbitControl
+  - "S" shows or hides the scoreboard by either looking at it 90 degrees off to the side
+  - "R" toggles global rotations
+
+RESOURCES:
+  - Claude.ai
+	- Patt Vira's Excellent tutorial: https://m.youtube.com/watch?v=AMugNCfP1NA
+  - Meshy.ai for converting text to 3D models! The future is now.
+
+TODO:
+  - Fix Broken orbitControl a bit. I suspect it's because I moved the camera in setup. Tried just translating back but that didn't do the trick. hmmm.
+*/
+
+
+
+// Flock biz
+const totalPopulation = 250;
 let flock = [];
 let octree;
 let worldSize;
+let populationCounts = [];
+const postConversionCooldownFrames = 1;
 
-function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
-  worldSize = min(windowWidth, windowHeight) * 0.8;
-  for (let i = 0; i < 200; i++) {
-    flock.push(new Boid());
+// Moving models biz
+let rockModel, paperModel, scissorsModel, lizardModel, spockModel;
+const smoothingFactor = 0.25; // the smaller, the smoother but also the laggier
+
+// Rotation to see scoreboard biz
+const animationDuration = 1000; // Rotation duration in milliseconds
+let currentRotation = 0;
+let targetRotation = 0;
+let animating = false;
+let startTime;
+let isRotated = false;
+const newPopCountWidth = 1;
+
+// visual pizzazz biz
+const rotationRate = 1200;
+// let palette = "#fe218b, #fed700, #21b0fe".split(", ");
+let palette = "#ffbe0b, #fb5607, #ff006e, #8338ec, #3a86ff".split(", ");
+
+// graphics buffer biz
+let scoreboard;
+let winningScreen;
+let winningTeam = null;
+
+// toggle controls biz
+let rotateInterestinglyMode = true;
+let manualControlOn = false;
+
+// camera
+let cam;
+
+
+const TYPES = {
+  ROCK: 0,
+  PAPER: 1,
+  SCISSORS: 2,
+  LIZARD: 3,
+  SPOCK: 4
+};
+
+let typesInOrder = ["ROCK", "PAPER", "SCISSORS", "LIZARD", "SPOCK"]
+
+// const COLORS = {
+//   [TYPES.ROCK]: '#fe218b',     
+//   [TYPES.PAPER]: '#fed700',    
+//   [TYPES.SCISSORS]: '#21b0fe'
+// };
+const COLORS = {
+  [TYPES.ROCK]: '#ffbe0b',     
+  [TYPES.PAPER]: '#fb5607',    
+  [TYPES.SCISSORS]: '#ff006e',
+  [TYPES.LIZARD] : '#8338ec',
+  [TYPES.SPOCK] : '#3a86ff'
+};
+
+const HUNTS = {
+  [TYPES.ROCK]: [TYPES.SCISSORS, TYPES.LIZARD],
+  [TYPES.PAPER]: [TYPES.ROCK, TYPES.SPOCK],
+  [TYPES.SCISSORS]: [TYPES.PAPER, TYPES.LIZARD],
+  [TYPES.LIZARD] : [TYPES.SPOCK, TYPES.PAPER],
+  [TYPES.SPOCK] : [TYPES.SCISSORS, TYPES.ROCK]
+};
+
+const FLEES_FROM = {
+  [TYPES.ROCK]: [TYPES.PAPER, TYPES.SPOCK],
+  [TYPES.PAPER]: [TYPES.SCISSORS, TYPES.LIZARD],
+  [TYPES.SCISSORS]: [TYPES.ROCK, TYPES.SPOCK],
+  [TYPES.LIZARD]: [TYPES.SCISSORS, TYPES.ROCK],
+  [TYPES.SPOCK] : [TYPES.LIZARD, TYPES.PAPER]
+};
+
+let MODEL2TYPE;
+
+function preload(){
+  rockModel = loadModel('Rock.obj', true, () => console.log("Rock model load success"), (err) => console.log("Rock model load err: " + err));
+  paperModel = loadModel('Paper.obj', true, () => console.log("Paper model load success"), (err) => console.log("Paper model load err: " + err));
+  scissorsModel = loadModel('Scissors.obj', true, () => console.log("Scissors model load success"), (err) => console.log("Scissors model load err: " + err));
+  lizardModel = loadModel('Lizard.obj', true, () => console.log("Lizard model load success"), (err) => console.log("Lizard model load err: " + err));
+  spockModel = loadModel('Spock.obj', true, () => console.log("Spock model load success"), (err) => console.log("Spock model load err: " + err));
+
+  MODEL2TYPE = {
+    [TYPES.ROCK]: rockModel,     
+    [TYPES.PAPER]: paperModel,    
+    [TYPES.SCISSORS]: scissorsModel,
+    [TYPES.LIZARD] : lizardModel,
+    [TYPES.SPOCK] : spockModel
   }
 }
 
-function draw() {
-  background(51);
+
+function setup() {
+  createCanvas(windowWidth, windowHeight, WEBGL);
+
+  cam = createCamera();
+  cam.setPosition(0,0,width*2);
+  pixelDensity(1);
+  rectMode(CENTER);
+  worldSize = min(windowWidth, windowHeight) * 2;
+  noStroke();
+  scoreboard = createGraphics(worldSize, worldSize);
+  scoreboard.noStroke();
+  for(let i = 0; i < palette.length; i++){
+    scoreboard.fill(palette[i]);
+    scoreboard.rect(0, i*scoreboard.height/palette.length, scoreboard.width, scoreboard.height/palette.length);
+  }
+
+  winningScreen = createGraphics(min(width, height), min(width, height));
+  winningScreen.noStroke();
+  winningScreen.fill(255);
+  winningScreen.textAlign(CENTER, CENTER);
+  winningScreen.textSize(winningScreen.height/8);
   
-  // Recreate the octree each frame
+  // Create equal numbers of each type
+  for (let i = 0; i < totalPopulation; i++) {  // 50 of each type
+    flock.push(new Boid(floor(i / (totalPopulation/palette.length))));
+  }
+
+}
+
+
+
+function draw() {
+  background(0);
+
+  // lighting
+  directionalLight(255, 255, 255, -0.5,-0.5,-1);
+  directionalLight(255, 255, 255, -0.5,0.5,-1);
+  directionalLight(255, 255, 255, 0.5,-0.5,-1);
+  directionalLight(255, 255, 255, 0.5,0.5,-1);
+  
+  handleRotation();
+  
+  push();
+  rotateY(radians(currentRotation));
+
+  push(); // flip around slowly
+  if(rotateInterestinglyMode){
+    rotateX(frameCount * TWO_PI/rotationRate);
+    rotateY(-frameCount * TWO_PI/rotationRate);
+    rotateZ(frameCount * TWO_PI/rotationRate);
+  }
+ 
+
   octree = new Octree(new Box(0, 0, 0, worldSize, worldSize, worldSize));
   
   for (let boid of flock) {
     octree.insert(boid);
   }
   
+  // First update positions
   for (let boid of flock) {
     boid.edges();
     boid.flock(octree);
     boid.update();
+  }
+  
+  // Then check for conversions
+  for (let boid of flock) {
+    boid.checkConversion(octree);
+  }
+  
+  // Finally render
+  for (let boid of flock) {
     boid.show();
   }
+  pop();
 
-  orbitControl(); 
+  populationCounts = updateCounts();
+  updateScoreboard();
+
+
+  // Show the scoreboard
+  rotateY(-HALF_PI);
+  texture(scoreboard);
+  rect(0,0, width, height);
+
+  pop();
+
+  checkForWinners();
+  
+
+  if(manualControlOn) orbitControl();
 }
 
 function windowResized() {
@@ -38,247 +231,92 @@ function windowResized() {
   }
 }
 
-class Boid {
-  constructor() {
-    this.position = createVector(
-      random(-worldSize/2, worldSize/2),
-      random(-worldSize/2, worldSize/2),
-      random(-worldSize/2, worldSize/2)
-    );
-    this.velocity = p5.Vector.random3D();
-    this.velocity.setMag(random(2, 4));
-    this.acceleration = createVector();
-    this.maxForce = worldSize * 0.0005;
-    this.maxSpeed = worldSize * 0.01;
-    this.size = worldSize * 0.005;
-  }
-  
-  edges() {
-    let halfWorld = worldSize / 2;
-    if (this.position.x > halfWorld) this.position.x = -halfWorld;
-    else if (this.position.x < -halfWorld) this.position.x = halfWorld;
-    if (this.position.y > halfWorld) this.position.y = -halfWorld;
-    else if (this.position.y < -halfWorld) this.position.y = halfWorld;
-    if (this.position.z > halfWorld) this.position.z = -halfWorld;
-    else if (this.position.z < -halfWorld) this.position.z = halfWorld;
-  }
-  
-  adjustToNewWorldSize() {
-    this.position.mult(worldSize / (min(windowWidth, windowHeight) * 0.8));
-    this.maxForce = worldSize * 0.0005;
-    this.maxSpeed = worldSize * 0.01;
-    this.size = worldSize * 0.005;
-  }
-  
-  align(boids) {
-    let perceptionRadius = worldSize * 0.1;
-    let steering = createVector();
-    let total = 0;
-    for (let other of boids) {
-      let d = dist(
-        this.position.x, this.position.y, this.position.z,
-        other.position.x, other.position.y, other.position.z
-      );
-      if (other != this && d < perceptionRadius) {
-        steering.add(other.velocity);
-        total++;
-      }
-    }
-    if (total > 0) {
-      steering.div(total);
-      steering.setMag(this.maxSpeed);
-      steering.sub(this.velocity);
-      steering.limit(this.maxForce);
-    }
-    return steering;
-  }
-  
-  cohesion(boids) {
-    let perceptionRadius = worldSize * 0.1;
-    let steering = createVector();
-    let total = 0;
-    for (let other of boids) {
-      let d = dist(
-        this.position.x, this.position.y, this.position.z,
-        other.position.x, other.position.y, other.position.z
-      );
-      if (other != this && d < perceptionRadius) {
-        steering.add(other.position);
-        total++;
-      }
-    }
-    if (total > 0) {
-      steering.div(total);
-      steering.sub(this.position);
-      steering.setMag(this.maxSpeed);
-      steering.sub(this.velocity);
-      steering.limit(this.maxForce);
-    }
-    return steering;
-  }
-  
-  separation(boids) {
-    let perceptionRadius = worldSize * 0.1;
-    let steering = createVector();
-    let total = 0;
-    for (let other of boids) {
-      let d = dist(
-        this.position.x, this.position.y, this.position.z,
-        other.position.x, other.position.y, other.position.z
-      );
-      if (other != this && d < perceptionRadius) {
-        let diff = p5.Vector.sub(this.position, other.position);
-        diff.div(d * d);
-        steering.add(diff);
-        total++;
-      }
-    }
-    if (total > 0) {
-      steering.div(total);
-      steering.setMag(this.maxSpeed);
-      steering.sub(this.velocity);
-      steering.limit(this.maxForce);
-    }
-    return steering;
-  }
-  
-  flock(octree) {
-    let nearby = octree.query(new Box(
-      this.position.x - worldSize * 0.1,
-      this.position.y - worldSize * 0.1,
-      this.position.z - worldSize * 0.1,
-      worldSize * 0.2,
-      worldSize * 0.2,
-      worldSize * 0.2
-    ));
-    let alignment = this.align(nearby);
-    let cohesion = this.cohesion(nearby);
-    let separation = this.separation(nearby);
+function handleRotation(){
+  if (animating) {
+    let elapsed = millis() - startTime;
+    let progress = elapsed / animationDuration;
     
-    this.acceleration.add(alignment);
-    this.acceleration.add(cohesion);
-    this.acceleration.add(separation);
-  }
-  
-  update() {
-    this.position.add(this.velocity);
-    this.velocity.add(this.acceleration);
-    this.velocity.limit(this.maxSpeed);
-    this.acceleration.mult(0);
-  }
-  
-  show() {
-    push();
-    translate(this.position.x, this.position.y, this.position.z);
-    ambientMaterial(255);
-    sphere(this.size);
-    pop();
+    if (progress >= 1) {
+      // Animation complete
+      currentRotation = targetRotation;
+      animating = false;
+    } else {
+      // Apply sine easing
+      let easedProgress = easeInOutCubic(progress);
+      currentRotation = lerp(currentRotation, targetRotation, easedProgress);
+    }
   }
 }
 
-class Box {
-  constructor(x, y, z, w, h, d) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
-    this.h = h;
-    this.d = d;
+function showGameOver(winningTeam){
+  winningScreen.text(`${winningTeam}\nWINS!`, winningScreen.width/2, winningScreen.height/2);
+  texture(winningScreen);
+  box(min(width, height));
+}
+
+function updateCounts(){
+  return  [
+    flock.filter(each => each.type === TYPES.ROCK).length,
+    flock.filter(each => each.type === TYPES.PAPER).length,
+    flock.filter(each => each.type === TYPES.SCISSORS).length,
+    flock.filter(each => each.type === TYPES.LIZARD).length,
+    flock.filter(each => each.type === TYPES.SPOCK).length
+  ]
+}
+
+function checkForWinners(){
+  for(let i = 0; i < populationCounts.length; i++){
+    if(populationCounts[i] === totalPopulation){
+      winningTeam = typesInOrder[i];
+      showGameOver(winningTeam);
+      break;
+    }
   }
-  
-  contains(point) {
-    return (point.x >= this.x - this.w &&
-            point.x < this.x + this.w &&
-            point.y >= this.y - this.h &&
-            point.y < this.y + this.h &&
-            point.z >= this.z - this.d &&
-            point.z < this.z + this.d);
-  }
-  
-  intersects(box) {
-    return !(box.x - box.w > this.x + this.w ||
-             box.x + box.w < this.x - this.w ||
-             box.y - box.h > this.y + this.h ||
-             box.y + box.h < this.y - this.h ||
-             box.z - box.d > this.z + this.d ||
-             box.z + box.d < this.z - this.d);
+  if(winningTeam) noLoop();
+}
+
+function updateScoreboard(){
+  // copy the previous image except for newPopCountWidth pixels
+  scoreboard.copy(
+    scoreboard,         // source
+    newPopCountWidth, 0,       // source x, y
+    scoreboard.width-newPopCountWidth, // source width (all but last 5 pixels)
+    scoreboard.height,  // source height (full height)
+    0, 0,       // destination x, y (shifted left by 5)
+    scoreboard.width-newPopCountWidth, // destination width
+    scoreboard.height   // destination height
+  );
+ 
+  // draw the latest population graph
+  let prevY = 0;
+  for(let i = 0; i < populationCounts.length; i++){
+    let popCountPixels = map(populationCounts[i], 0, totalPopulation, 0, scoreboard.height);
+    scoreboard.fill(palette[i]);
+    scoreboard.rect(scoreboard.width - newPopCountWidth, prevY, newPopCountWidth, popCountPixels);
+    prevY += popCountPixels;
   }
 }
 
-class Octree {
-  constructor(boundary, capacity = 4) {
-    this.boundary = boundary;
-    this.capacity = capacity;
-    this.points = [];
-    this.divided = false;
-  }
-  
-  subdivide() {
-    let x = this.boundary.x;
-    let y = this.boundary.y;
-    let z = this.boundary.z;
-    let w = this.boundary.w / 2;
-    let h = this.boundary.h / 2;
-    let d = this.boundary.d / 2;
-    
-    this.northwest = new Octree(new Box(x - w, y - h, z - d, w, h, d));
-    this.northeast = new Octree(new Box(x + w, y - h, z - d, w, h, d));
-    this.southwest = new Octree(new Box(x - w, y + h, z - d, w, h, d));
-    this.southeast = new Octree(new Box(x + w, y + h, z - d, w, h, d));
-    this.northwestBack = new Octree(new Box(x - w, y - h, z + d, w, h, d));
-    this.northeastBack = new Octree(new Box(x + w, y - h, z + d, w, h, d));
-    this.southwestBack = new Octree(new Box(x - w, y + h, z + d, w, h, d));
-    this.southeastBack = new Octree(new Box(x + w, y + h, z + d, w, h, d));
-    
-    this.divided = true;
-  }
-  
-  insert(point) {
-    if (!this.boundary.contains(point.position)) {
-      return false;
-    }
-    
-    if (this.points.length < this.capacity) {
-      this.points.push(point);
-      return true;
-    }
-    
-    if (!this.divided) {
-      this.subdivide();
-    }
-    
-    return (this.northwest.insert(point) ||
-            this.northeast.insert(point) ||
-            this.southwest.insert(point) ||
-            this.southeast.insert(point) ||
-            this.northwestBack.insert(point) ||
-            this.northeastBack.insert(point) ||
-            this.southwestBack.insert(point) ||
-            this.southeastBack.insert(point));
-  }
-  
-  query(range, found = []) {
-    if (!this.boundary.intersects(range)) {
-      return found;
-    }
-    
-    for (let p of this.points) {
-      if (range.contains(p.position)) {
-        found.push(p);
+function keyPressed(){
+  switch(key.toLowerCase()){
+    case 's':
+      if (!animating) {
+        startTime = millis();
+        animating = true;
+        isRotated = !isRotated; // Toggle rotation state
+        targetRotation = isRotated ? 90 : 0; // Set target based on state
       }
-    }
-    
-    if (this.divided) {
-      this.northwest.query(range, found);
-      this.northeast.query(range, found);
-      this.southwest.query(range, found);
-      this.southeast.query(range, found);
-      this.northwestBack.query(range, found);
-      this.northeastBack.query(range, found);
-      this.southwestBack.query(range, found);
-      this.southeastBack.query(range, found);
-    }
-    
-    return found;
+      break;
+    case 'o':
+      manualControlOn = !manualControlOn;
+      break;
+    case 'r':
+      rotateInterestinglyMode = !rotateInterestinglyMode; 
+    default:
+      break;
   }
+}
+
+function easeInOutCubic(x){
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
