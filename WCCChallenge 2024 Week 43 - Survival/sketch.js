@@ -130,7 +130,8 @@ function preload(){
 
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  // createCanvas(windowWidth, windowHeight, WEBGL);
+  createCanvas(1920, 1080, WEBGL);
 
   cam = createCamera();
   cam.setPosition(0,0,width*2);
@@ -138,7 +139,8 @@ function setup() {
   rectMode(CENTER);
   worldSize = min(windowWidth, windowHeight) * 2;
   noStroke();
-  scoreboard = createGraphics(worldSize, worldSize);
+  // scoreboard = createGraphics(width, worldSize);
+  scoreboard = createGraphics(width/2, height/2);
   scoreboard.noStroke();
   for(let i = 0; i < palette.length; i++){
     scoreboard.fill(palette[i]);
@@ -171,8 +173,16 @@ function draw() {
   
   handleRotation();
   
+  // push();
+  // rotateY(radians(currentRotation));
   push();
-  rotateY(radians(currentRotation));
+  // Show the scoreboard
+  // rotateY(-HALF_PI);
+  translate(0,0,3*width);
+  texture(scoreboard);
+  rect(0,0, width, height);
+
+  pop();
 
   push(); // flip around slowly
   if(rotateInterestinglyMode){
@@ -183,6 +193,7 @@ function draw() {
  
 
   octree = new Octree(new Box(0, 0, 0, worldSize, worldSize, worldSize));
+ 
   
   for (let boid of flock) {
     octree.insert(boid);
@@ -210,12 +221,7 @@ function draw() {
   updateScoreboard();
 
 
-  // Show the scoreboard
-  rotateY(-HALF_PI);
-  texture(scoreboard);
-  rect(0,0, width, height);
-
-  pop();
+  
 
   checkForWinners();
   
@@ -223,13 +229,13 @@ function draw() {
   if(manualControlOn) orbitControl();
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  worldSize = min(windowWidth, windowHeight) * 0.8;
-  for (let boid of flock) {
-    boid.adjustToNewWorldSize();
-  }
-}
+// function windowResized() {
+//   resizeCanvas(windowWidth, windowHeight);
+//   worldSize = min(windowWidth, windowHeight) * 0.8;
+//   for (let boid of flock) {
+//     boid.adjustToNewWorldSize();
+//   }
+// }
 
 function handleRotation(){
   if (animating) {
@@ -272,7 +278,7 @@ function checkForWinners(){
       break;
     }
   }
-  if(winningTeam) noLoop();
+  // if(winningTeam) noLoop();
 }
 
 function updateScoreboard(){
