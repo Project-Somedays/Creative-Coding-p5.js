@@ -6,7 +6,8 @@ let gui, params;
 let palette = "#10002b, #240046, #3c096c, #5a189a, #7b2cbf, #9d4edd, #c77dff, #e0aaff".split(", ")
 
 function setup() {
-  createCanvas(600, 600, WEBGL);
+  // createCanvas(600, 600, WEBGL);
+  createCanvas(1080, 1080, WEBGL);
   noStroke();
   frameRate(60);
 
@@ -67,7 +68,7 @@ function draw() {
   
   orbitControl();
 
-  if(frameCount > 10 + params.cycleFrames) noLoop();
+  // if(frameCount > 10 + params.cycleFrames) noLoop();
 }
 
 
