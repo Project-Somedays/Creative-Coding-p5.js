@@ -1,3 +1,17 @@
+/*
+Author: Project Somedays
+Date: 2024-12-15
+Title: WIP WCCChallenge - Chromatic Communication - V1
+
+Made for Sableraph's weekly creative coding challenges, reviewed weekly on https://www.twitch.tv/sableraph
+See other submissions here: https://openprocessing.org/curation/78544
+Join The Birb's Nest Discord community! https://discord.gg/g5J6Ajx9Am
+
+A behind-the-scenes into Version 1 of this project, completed here: https://openprocessing.org/sketch/2488048
+*/
+
+
+
 const n = 75;
 const rotations = 4;
 const spiralPoints = [];
@@ -5,12 +19,15 @@ const palette = "#ef476f, #ffd166, #06d6a0, #118ab2, #073b4c".split(", ");
 const frames = 120;
 const copies = 4;
 let currentColour;
+let w;
 
 // hand holding phone model: https://sketchfab.com/3d-models/hand-holding-phone-6d99aa43705c44bcadde799b9a617d1c#download
 // starting model: https://www.freepik.com/free-vector/phone-human-hand-3d-cartoon-style-icon-person-businessman-using-social-media-smartphone-cellphone-flat-vector-illustration-technology-communication-internet-concept_29119341.htm#fromView=keyword&page=1&position=0&uuid=674f3e2c-1ecc-4dd5-8dbf-27735780f1f5
 
 function setup() {
-  createCanvas(1080, 1080, WEBGL);
+  // createCanvas(1080, 1080, WEBGL);
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  w = min(width, height);
   pixelDensity(1);
   frameRate(30);
   currentColour = random(palette);
@@ -33,9 +50,9 @@ function draw() {
   let start = spiralPoints[0];
   rotateY(-frameCount*TWO_PI/600);
   translate(start.x, start.y, start.z);
-  scale(1+easeInOutElastic(constrain(4*(progress),0,1)));
+  // scale(1+easeInOutElastic(constrain(4*(progress),0,1)));
   fill(currentColour);
-  box(width*0.0625, width*0.0625*sqrt(2), width*0.0125);
+  box(w*0.0625, w*0.0625*sqrt(2), w*0.0125);
   pop();
 
   pointLight(255, 255, 255, createVector(0,0,0));
@@ -68,7 +85,7 @@ function draw() {
     }
     let end = spiralPoints[n-1];
     vertex(end.x, end.y, end.z);
-    vertex(end.x, height/2*1.05, end.z);
+    // vertex(end.x, height/2*1.05, end.z);
     endShape();
 
     noStroke();

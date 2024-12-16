@@ -12,13 +12,15 @@
         }
 
         showMessage(){
-            let p = getCurvePoint(this.pt, progress <= 0.5 ? 2*progress : (1-progress) * 2);
+            let t = progress <= 0.5 ? 2*progress : (1 - progress)*2;
+            let p = getCurvePoint(this.pt, t);
             push();
             translate(p.x, p.y, p.z);
             fill(currentColour);
             noStroke();
-            sphere(0.025*width);
+            sphere((0.025)*width);
             pop();
+            
         }
 
         showPt(){
@@ -32,7 +34,7 @@
         generateCurve(){
             this.curvePts = [];
             for(let t = 0; t <= 1; t += 1/params.chordPathSteps){
-            this.curvePts.push(getCurvePoint(this.pt, t, params.chordSquiggliness));
+                this.curvePts.push(getCurvePoint(this.pt, t));
             }
         }
 
@@ -50,7 +52,6 @@
 
         showPhone(){
             push();
-            
             // Translate to point on sphere
             translate(this.pt.x, this.pt.y, this.pt.z);
             let normal = this.pt.copy().normalize();
@@ -66,7 +67,6 @@
             // Draw box (long edge parallel to radius)
             noStroke();
             fill(this.colour);
-            // fill(100, 150, 255, 200);
             box(params.phoneSize*w/sqrt(2), params.phoneSize*w, params.phoneSize*0.2*w);  // Tall box oriented vertically
             
             pop();

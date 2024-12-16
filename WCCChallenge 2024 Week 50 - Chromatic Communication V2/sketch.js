@@ -51,7 +51,10 @@ let globalBiz;
 
 let progress;
 
-let keyLight, fillLight, backLight;
+// let keyLight, fillLight, backLight;
+let pointLighting;
+let directionalLighting;
+
 
 let phones = [];
 
@@ -72,10 +75,48 @@ function preload(){
 
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  // createCanvas(windowWidth, windowHeight, WEBGL);
+  createCanvas(1920, 1080, WEBGL);
   w = min(windowWidth, windowHeight)
   pixelDensity(1);
   frameRate(30);
+
+  // POINT LIGHTING
+  pointLighting = {
+    keyLight : {
+      color: color(255, 200, 200),  // Warm key light
+      positional: createVector(200, 0, 300),
+    },
+    
+    fillLight : {
+      color: color(100, 150, 255),  // Cool fill light
+      positional: createVector(-200, 0, 200)
+    },
+    
+    backLight : {
+      color: color(255, 255, 200),  // Bright back light
+      positional: createVector(0, -300, 300)
+    }
+  }
+  
+
+  // DIRECTIONAL LIGHTING
+  directionalLighting = {
+    keyLight : {
+      color: color(255, 200, 200),  // Warm key light
+      positional: createVector(-1, 0, -1).normalize()  // Direction pointing towards the scene
+    },
+    
+    fillLight : {
+      color: color(100, 150, 255),  // Cool fill light
+      positional: createVector(1, 0, -1).normalize()  // Direction pointing towards the scene
+    },
+    
+    backLight : {
+      color: color(255, 255, 200),  // Bright back light
+      positional: createVector(0, 1, -1).normalize()  // Direction pointing towards the scene
+    }
+  }
 
 
   // GLOBAL PARAMETERS
@@ -92,21 +133,27 @@ function setup() {
     chordNoiseZoom: 300,
     chordThickness: 1,
     phoneSize: 0.1,
+    noiseProgressionRate: 0.01,
+    noiseProgressionMode: true,
     chordColour: "#ffffff",
     threePointLightSetup: true,
     autoRotateMode: true,
-    bgColour: '#000000'
+    bgColour: '#000000',
+    lightingSetup: pointLighting
   }
 
   // SETTING UP THE GUI IN FOLDERS
   globalBiz = gui.addFolder("Global Biz");
   globalBiz.addColor(params,  'bgColour');
   globalBiz.add(params, 'rotationRate', TWO_PI/2400, TWO_PI/300);
-  globalBiz.add(params, 'phoneCount', 1, 50, 1).onChange(newVal => phones = distributePhonesOnSphere(newVal));
+  globalBiz.add(params, 'phoneCount', 1, 100, 1).onChange(newVal => phones = distributePhonesOnSphere(newVal));
   globalBiz.add(params, 'globalRadius', 0.0, 2.0*width).onChange(newVal => phones = distributePhonesOnSphere(params.phoneCount));
   globalBiz.add(params, 'cycleFrames', 30, 900, 1);
+  globalBiz.add(params, 'noiseProgressionRate', 0.01, 0.05);
+  globalBiz.add(params, 'noiseProgressionMode');
   globalBiz.add(params, 'autoRotateMode');
   globalBiz.add(params, 'threePointLightSetup');
+  globalBiz.add(params, 'lightingSetup', {"Point Lighting": pointLighting, "Directional Lighting": directionalLighting});
   
   
   chordBiz = gui.addFolder("Chord Biz");
@@ -129,28 +176,9 @@ function setup() {
   currentMaster = random(phones);
   currentMaster.setColour(currentColour);
   currentMaster.isCurrentMaster = true;
-
-  // LIGHTING
-  keyLight = {
-    color: color(255, 200, 200),  // Warm key light
-    position: createVector(200, 0, 300)
-  };
-  
-  fillLight = {
-    color: color(100, 150, 255),  // Cool fill light
-    position: createVector(-200, 0, 200)
-  };
-  
-  backLight = {
-    color: color(255, 255, 200),  // Bright back light
-    position: createVector(0, -300, 300)
-  };
-
 }
 
-function updateCurves(){
-  phones.map(e => e.generateCurve());
-}
+
 
 function draw() {
   background(params.bgColour);
@@ -161,21 +189,31 @@ function draw() {
     rotateZ(frameCount * params.rotationRate);
   }
  
-
    // Apply lights
   if(params.threePointLightSetup){
-    // Key Light (Main Light)
-    pointLight(keyLight.color, keyLight.position);
-    // Fill Light (Secondary Light)
-    pointLight(fillLight.color, fillLight.position);
-    // Back Light (Rim Light)
-    pointLight(backLight.color, backLight.position);
+    switch(params.lightingSetup){
+      case pointLighting:
+        pointLight(params.lightingSetup.keyLight.color, params.lightingSetup.keyLight.positional);
+        pointLight(params.lightingSetup.fillLight.color, params.lightingSetup.fillLight.positional);
+        pointLight(params.lightingSetup.backLight.color, params.lightingSetup.backLight.positional);
+        break;
+      case directionalLighting:
+        directionalLight(params.lightingSetup.keyLight.color, params.lightingSetup.keyLight.positional);
+        directionalLight(params.lightingSetup.fillLight.color, params.lightingSetup.fillLight.positional);
+        directionalLight(params.lightingSetup.backLight.color, params.lightingSetup.backLight.positional);
+        break;
+      default:
+        break;
+    }
+    
+    
   }
   // 
   
   
   // update progress
   progress = (frameCount%params.cycleFrames)/params.cycleFrames;
+  if(params.noiseProgressionMode) updateCurves();
 
   // at the end of the cycle
   // choose a new master and colour
@@ -206,6 +244,10 @@ function draw() {
   }
 
   orbitControl();
+}
+
+function updateCurves(){
+  phones.map(e => e.generateCurve());
 }
 
 
@@ -243,8 +285,10 @@ const getCurvePoint = (start, t) => {
   const centre = createVector(0,0,0);
   let p = p5.Vector.lerp(start, centre, t);
   let r = 0.25*params.globalRadius*easeInOutSineFullCycle(t); //t < 0.5 ? t * 0.25 * width : (1 - t) * 0.25 * width; //0.2*width*easeInOutCirc(t); // radius of the sphere
-  let phi = map(noise(p.x/params.chordNoiseZoom, p.y/params.chordNoiseZoom, p.z/params.chordNoiseZoom), 0, 1, 0, params.chordSquiggliness*TWO_PI);
-  let theta = map(noise(p.x/params.chordNoiseZoom+100, p.y/params.chordNoiseZoom+100, p.z/params.chordNoiseZoom+100), 0, 1, 0, params.chordSquiggliness*PI);
+  let noiseOffset = 0;
+  if(params.noiseProgressionMode) noiseOffset = frameCount * params.noiseProgressionRate;
+  let phi = map(noise(p.x/params.chordNoiseZoom + noiseOffset, p.y/params.chordNoiseZoom, p.z/params.chordNoiseZoom), 0, 1, 0, params.chordSquiggliness*TWO_PI);
+  let theta = map(noise(p.x/params.chordNoiseZoom+100 + noiseOffset, p.y/params.chordNoiseZoom+100, p.z/params.chordNoiseZoom+100), 0, 1, 0, params.chordSquiggliness*PI);
   let pt = getPointOnSphere(r, phi, theta).add(p);
 
   return pt;
