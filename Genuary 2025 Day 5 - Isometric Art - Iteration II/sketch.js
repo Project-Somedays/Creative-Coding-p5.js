@@ -39,6 +39,7 @@ const densityMultiplier = {
 
 function setup(){
   createCanvas(1080, 1080, WEBGL);
+  // createCanvas(windowWidth, windowHeight, WEBGL);
   noStroke();
   frameRate(30);
   pixelDensity(1);
