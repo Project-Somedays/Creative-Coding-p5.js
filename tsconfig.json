@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es5", // p5.js works best with ES5
+    "module": "commonjs", // Or "amd" if you prefer
+    "outDir": "./dist", // Output directory for compiled JavaScript
+    "strict": true, // Enable strict type checking (recommended)
+    "esModuleInterop": true, // Improves compatibility with CommonJS modules
+    "skipLibCheck": true, // Skip type checking of declaration files (faster compilation)
+    "forceConsistentCasingInFileNames": true, // Enforce consistent casing
+    "noImplicitAny": false, // Allows implicit any for p5 library usage
+    "types": ["p5"], // Include p5.js type definitions
+    "lib": ["es5", "dom"] // Include ES5 and DOM libraries
+  },
+  "include": [
+    "./*.ts", // Include all TypeScript files in the root folder
+    "./**/*.ts" // Include all TypeScript files in subfolders (your sketches)
+  ],
+  "exclude": [
+    "node_modules" // Exclude node_modules (if you have any)
+  ]
+}

@@ -16,6 +16,7 @@ Spin-Off Ideas that I don't have time for:
 
 Help:
  - Curious why there's a black background to the font?
+ 
   */
 
 
@@ -23,26 +24,87 @@ let meshVerts = [];
 let originalVerts = [];
 const res = 10;
 const holeRadius = 0.4; // Proportion of canvas width for the hole
+let speech;
 
 let font;
 let phrases = [
-  "Why?", "Help!", "No!", "Stop!", "Wait!", "Go away!", "Come back!", 
-  "Forever!", "Never!", "Always!", "Again?", "How dare you!", 
-  "Unbelievable!", "Impossible!", "Save me!", "Take me with you!", 
-  "Leave me alone!", "I can't!", "I won't!", "Why me?", 
-  "What's the point?", "Make it stop!", "Do something!", "Say something!", 
-  "Nothing matters!", "Everything matters!", "It's all a lie!", 
-  "I'm done!", "I'm lost!", "I'm scared!", "It hurts!", "It doesn't hurt!", 
-  "I tried!", "I failed!", "I'm sorry!", "I'm not sorry!", 
-  "What if?", "If only!", "Please!", "Thanks for nothing!", 
-  "Come on!", "Is that all?", "Do better!", "Try harder!", 
-  "Let go!", "Hold on!", "It's over!", "It's not over!", "I exist!", "Do I exist?",
-   "Why not?", "What now?", "Seriously?", "Really?", "Fix this!", 
-  "Undo it!", "Do it!", "Stay!", "Leave!", "Run!", 
-  "Fall!", "Fly!", "Jump!", "Cry!", "Laugh!", 
-  "Burn!", "Freeze!", "Shatter!", "Break!", "Heal!", 
-  "Forget me!", "Remember me!", "Look at me!", "Don't look at me!", 
-  "Love me!", "Hate me!", "Listen to me!", "Ignore me!", "Trust me!", 
+  "Why?", 
+  "Help!", 
+  "No!", 
+  "Stop!", 
+  "Wait!", 
+  "Go away!", 
+  "Come back!", 
+  "Forever!", 
+  "Never!", 
+  "Always!", 
+  "Again?", 
+  "How dare you!", 
+  "Unbelievable!", 
+  "Impossible!", 
+  "Save me!", 
+  "Take me with you!", 
+  "Leave me alone!", 
+  "I can't!", 
+  "I won't!", 
+  "Why me?", 
+  "What's the point?", 
+  "Make it stop!", 
+  "Do something!", 
+  "Say something!", 
+  "Nothing matters!", 
+  "Everything matters!", 
+  "It's all a lie!", 
+  "I'm done!", 
+  "I'm lost!", 
+  "I'm scared!", 
+  "It hurts!", 
+  "It doesn't hurt!", 
+  "I tried!", 
+  "I failed!", 
+  "I'm sorry!", 
+  "I'm not sorry!", 
+  "What if?", 
+  "If only!", 
+  "Please!", 
+  "Thanks for nothing!", 
+  "Come on!", 
+  "Is that all?", 
+  "Do better!", 
+  "Try harder!", 
+  "Let go!", 
+  "Hold on!", 
+  "It's over!", 
+  "It's not over!", 
+  "I exist!", 
+  "Do I exist?",
+  "Why not?", 
+  "What now?", 
+  "Seriously?", 
+  "Really?", 
+  "Fix this!", 
+  "Undo it!", 
+  "Do it!", 
+  "Stay!", 
+  "Leave!", 
+  "Run!", 
+  "Fall!", 
+  "Fly!", 
+  "Jump!", 
+  "Cry!", 
+  "Laugh!", 
+  "Burn!", 
+  "Freeze!", 
+  "Shatter!", 
+  "Break!", 
+  "Heal!", 
+  "Forget me!", 
+  "Remember me!", 
+  "Look at me!", 
+  "Don't look at me!", 
+  "Love me!", 
+  "Hate me!", 
+  "Listen to me!", "Ignore me!", "Trust me!", 
   "Don't trust me!", "Give up!", "Don't give up!", "Fight me!", 
   "Help me!", "Spare me!", "Destroy me!", "Save yourself!", "Run away!", 
   "Don't leave!", "Why here?", "Why now?", "Show yourself!", 
@@ -53,16 +115,22 @@ let phrases = [
 let letters=  [];
 
 function preload() {
-  font = loadFont("Staatliches-Regular.ttf"); // Preload the font. For 3D to work, we need a font file (not a linked font). 
+  font = loadFont("Staatliches-Regular.ttf"); // Preload the font. For 3D to work, we need a font file (not a linked font).
+  
 }
 
 
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  // createCanvas(windowWidth, windowHeight, WEBGL);
+  createCanvas(1080, 1080, WEBGL);
+  speech = new p5.Speech();
+  speech.listVoices();
+  speech.setRate(1.25);
   textFont(font);
   textSize(width/20);
   textAlign(CENTER, CENTER);
+  noCursor();
   pixelDensity(1);  
   // Create original and deformable vertices
   for(let x = 0; x < res; x++){
@@ -168,8 +236,10 @@ function draw() {
 function scream(){
   // Randomly add new phrases
   if (frameCount % 50 === 0) {
+    speech.set
+    let newPhrase = random(phrases)
     letters.push({
-      phrase: random(phrases),
+      phrase: newPhrase,
       x: random(-width/16, width/16),
       y: -height,
       z: random(-width/16, width/16),
@@ -186,7 +256,9 @@ function scream(){
         z: random(TWO_PI)
       }
     });
+    speech.speak(newPhrase);
   }
+  
 }
 
 function showScreams(){
