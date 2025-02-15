@@ -26,9 +26,23 @@ let currentCol;
 let currentRug;
 let currentStyle = 0;
 let currentPalette = 0;
+let img;
+let pg;
+let wood;
+let music;
+
+function preload() {
+  img = loadImage('Persian Rug Loom Room.jpg');
+  wood = loadImage('wood_table_worn_diff_1k.jpg');
+  music = loadSound('light-turkish-music-for-video-51-seconds-meditative-background-hip-hop-153258.mp3');
+}
 
 function setup() {
-  createCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight), WEBGL);
+  // createCanvas(min(windowWidth, windowHeight),min(windowWidth, windowHeight), WEBGL);
+  createCanvas(1080, 1080, WEBGL);
+  pg = createGraphics(width, height);
+  pg.image(img, 0, 0, width, height);
+  
   pixelDensity(1);
   loomBarDiam = height/50;
   rows = height / weight;
@@ -37,6 +51,7 @@ function setup() {
   cnv = createGraphics(width, height);
   currentRug = generateRug(currentStyle, currentPalette);
   drawRugToCanvas(currentRug, cnv); // Draw the initial rug to cnv
+  noCursor();
   // cnv.background('#FFA500');
   // cnv.noStroke();
   // cnv.fill("#ff0000");
@@ -45,10 +60,19 @@ function setup() {
   loomInstructions = collectLoomInstructions(cnv);
   currentCol = loomInstructions[0].col;
   console.log(currentCol);
+  music.loop();
 }
 
 function draw() {
   background(0);
+
+  noStroke();
+  texture(pg);
+  push();
+  translate(0,0,-width);
+  scale(3);
+  plane(width, height);
+  pop();
 
   rotateY(frameCount * TWO_PI/1200);
   directionalLight(255, 255, 255, 0,0,-1);
@@ -125,7 +149,8 @@ function collectLoomInstructions(cnv){
 
 function showLoom(){
   noStroke();
-  fill(255);
+  
+  texture(wood);
   push();
   translate(0,-height*0.5,0);
   rotateZ(HALF_PI);
