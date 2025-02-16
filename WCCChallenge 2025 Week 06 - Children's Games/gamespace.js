@@ -24,11 +24,11 @@ class GameSpace{
     showSpace(){
       stroke(this.col);
       fill(0);
-      strokeWeight(this.mouseOver ? 5 : 1);
+      strokeWeight(this.mouseOver ? 5 : 2);
       push();
         translate(this.p.x, this.p.y, this.p.z);
         let ySizeMultiplier = this.isEndZone ? 5 : 1;
-        plane(rockSize*4, rockSize*4 * ySizeMultiplier);10000
+        plane(rockSize*6, rockSize*6 * ySizeMultiplier);10000
       pop();
     }
 
@@ -59,9 +59,7 @@ class GameSpace{
   
     show(){
       this.showSpace();
-      this.showRocks();
-      
-      
+      this.showRocks();     
     }
   }
   
