@@ -15,9 +15,11 @@
   // Setting up the biz
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
-  const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  // const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  const camera = new THREE.PerspectiveCamera( 75, 1.0, 0.1, 1000 );
   const renderer = new THREE.WebGLRenderer();
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  // renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setSize(1080, 1080);
   document.body.appendChild( renderer.domElement );
 
   // OrbitControls
@@ -68,7 +70,7 @@ modelManager.loadModel(modelName)
 
 // Animation loop
 function animate() {
-    t += 0.05;
+    t += 0.03;
     let prog = (t) => 0.5*(Math.sin(t) + 1);
     requestAnimationFrame( animate );
     controls.update();
@@ -87,14 +89,14 @@ function animate() {
 
 animate();
 
-// Handle window resizing
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-}
+// // Handle window resizing
+// function onWindowResize() {
+//     camera.aspect = window.innerWidth / window.innerHeight;
+//     camera.updateProjectionMatrix();
+//     renderer.setSize( window.innerWidth, window.innerHeight );
+// }
 
-window.addEventListener( 'resize', onWindowResize, false );
+// window.addEventListener( 'resize', onWindowResize, false );
 
 
 function onMouseClick(event) {
